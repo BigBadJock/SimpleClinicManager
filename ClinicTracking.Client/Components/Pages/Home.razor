@@ -56,7 +56,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search by patient name or MRN..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
                 <button class="btn btn-primary" @onclick="SearchPatients">
@@ -64,7 +64,12 @@
                 </button>
             </div>
         </div>
-        <div class="col-md-4 text-end">
+        <div class="col-md-3">
+            <button class="btn btn-outline-secondary w-100" @onclick="ClearFilter" title="Clear all filters and sorting">
+                <i class="fas fa-times-circle me-2"></i>Clear Filters
+            </button>
+        </div>
+        <div class="col-md-3 text-end">
             <button class="btn btn-success" @onclick="AddNewPatient">
                 <i class="fas fa-plus"></i> Add New Patient
             </button>
@@ -104,13 +109,54 @@
                             <tr>
                                 <th>MRN</th>
                                 <th>Name</th>
-                                <th>Referral Date</th>
-                                <th>Counselling Date</th>
+                                <th class="sortable-header" @onclick='() => ToggleSort("ReferralDate")'>
+                                    Referral Date
+                                    @if (sortColumn == "ReferralDate")
+                                    {
+                                        <i class="fas @(sortAscending ? "fa-sort-up" : "fa-sort-down") ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sort ms-1 text-muted"></i>
+                                    }
+                                </th>
+                                <th class="sortable-header" @onclick='() => ToggleSort("CounsellingDate")'>
+                                    Counselling Date
+                                    @if (sortColumn == "CounsellingDate")
+                                    {
+                                        <i class="fas @(sortAscending ? "fa-sort-up" : "fa-sort-down") ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sort ms-1 text-muted"></i>
+                                    }
+                                </th>
+                                <th class="sortable-header" @onclick='() => ToggleSort("DispensedDate")'>
+                                    Dispensed Date
+                                    @if (sortColumn == "DispensedDate")
+                                    {
+                                        <i class="fas @(sortAscending ? "fa-sort-up" : "fa-sort-down") ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sort ms-1 text-muted"></i>
+                                    }
+                                </th>
                                 <th>Treatment</th>
                                 <th>Treatment Type</th>
                                 <th>Wait Time (days)</th>
                                 <th>Treatment Time (days)</th>
-                                <th>Next Appointment</th>
+                                <th class="sortable-header" @onclick='() => ToggleSort("NextAppointment")'>
+                                    Next Appointment
+                                    @if (sortColumn == "NextAppointment")
+                                    {
+                                        <i class="fas @(sortAscending ? "fa-sort-up" : "fa-sort-down") ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sort ms-1 text-muted"></i>
+                                    }
+                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -129,6 +175,16 @@
                                         else
                                         {
                                             <span class="badge bg-warning">Pending</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.DispensedDate.HasValue)
+                                        {
+                                            @patient.DispensedDate.Value.ToString("dd/MM/yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not dispensed</span>
                                         }
                                     </td>
                                     <td>
@@ -235,6 +291,8 @@
     private string searchTerm = "";
     private string currentFilter = "";
     private bool loading = true;
+    private string? sortColumn = null;
+    private bool sortAscending = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +315,9 @@
                 patients = await PatientService.GetAllPatientsAsync();
                 currentFilter = "";
             }
+            
+            // Apply sorting after loading data
+            ApplySorting();
         }
         catch (Exception ex)
         {
@@ -308,6 +369,7 @@
             patients = await PatientService.GetAwaitingCounsellingAsync();
             currentFilter = "Patients Awaiting Counselling";
             searchTerm = "";
+            ApplySorting();
         }
         finally
         {
@@ -323,6 +385,7 @@
             patients = await PatientService.GetAwaitingTreatmentAsync();
             currentFilter = "Patients Awaiting Treatment";
             searchTerm = "";
+            ApplySorting();
         }
         finally
         {
@@ -338,6 +401,7 @@
             patients = await PatientService.GetFollowUpDueAsync();
             currentFilter = "Patients with Follow-up Due";
             searchTerm = "";
+            ApplySorting();
         }
         finally
         {
@@ -349,7 +413,47 @@
     {
         searchTerm = "";
         currentFilter = "";
+        sortColumn = null;
+        sortAscending = true;
         await LoadPatients();
+    }
+
+    private void ToggleSort(string columnName)
+    {
+        if (sortColumn == columnName)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortColumn = columnName;
+            sortAscending = true;
+        }
+        
+        ApplySorting();
+    }
+
+    private void ApplySorting()
+    {
+        if (patients == null || string.IsNullOrEmpty(sortColumn))
+            return;
+
+        patients = sortColumn switch
+        {
+            "ReferralDate" => sortAscending 
+                ? patients.OrderBy(p => p.ReferralDate)
+                : patients.OrderByDescending(p => p.ReferralDate),
+            "CounsellingDate" => sortAscending
+                ? patients.OrderBy(p => p.CounsellingDate ?? DateTime.MaxValue)
+                : patients.OrderByDescending(p => p.CounsellingDate ?? DateTime.MinValue),
+            "DispensedDate" => sortAscending
+                ? patients.OrderBy(p => p.DispensedDate ?? DateTime.MaxValue)
+                : patients.OrderByDescending(p => p.DispensedDate ?? DateTime.MinValue),
+            "NextAppointment" => sortAscending
+                ? patients.OrderBy(p => p.NextAppointment ?? DateTime.MaxValue)
+                : patients.OrderByDescending(p => p.NextAppointment ?? DateTime.MinValue),
+            _ => patients
+        };
     }
 
     private void AddNewPatient()
