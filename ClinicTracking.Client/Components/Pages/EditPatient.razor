@@ -1,0 +1,291 @@
+@page "/edit-patient/{Id:guid}"
+@using ClinicTracking.Client.DTOs
+@using ClinicTracking.Client.Services
+@inject IPatientService PatientService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Patient</PageTitle>
+
+@if (loading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading patient details...</p>
+    </div>
+}
+else if (patient == null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Patient not found.
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-edit me-2"></i>
+                            Edit Patient: @patient.Name (@patient.MRN)
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="patient" OnValidSubmit="UpdatePatient" FormName="EditPatientForm">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mrn" class="form-label">MRN <span class="text-danger">*</span></label>
+                                        <InputText id="mrn" class="form-control" @bind-Value="patient.MRN" />
+                                        <ValidationMessage For="@(() => patient.MRN)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Patient Name <span class="text-danger">*</span></label>
+                                        <InputText id="name" class="form-control" @bind-Value="patient.Name" />
+                                        <ValidationMessage For="@(() => patient.Name)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="referralDate" class="form-label">Referral Date <span class="text-danger">*</span></label>
+                                        <InputDate id="referralDate" class="form-control" @bind-Value="patient.ReferralDate" />
+                                        <ValidationMessage For="@(() => patient.ReferralDate)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="counsellingDate" class="form-label">Counselling Date</label>
+                                        <InputDateNullable id="counsellingDate" class="form-control" @bind-Value="patient.CounsellingDate" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="delayReason" class="form-label">Delay Reason</label>
+                                <InputTextArea id="delayReason" class="form-control" rows="3" @bind-Value="patient.DelayReason" />
+                                <ValidationMessage For="@(() => patient.DelayReason)" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <InputCheckbox id="surveyReturned" class="form-check-input" @bind-Value="patient.SurveyReturned" />
+                                        <label for="surveyReturned" class="form-check-label">Survey Returned</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <InputCheckbox id="isEnglishFirstLanguage" class="form-check-input" @bind-Value="patient.IsEnglishFirstLanguage" />
+                                        <label for="isEnglishFirstLanguage" class="form-check-label">English First Language</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="treatment" class="form-label">Treatment</label>
+                                <InputText id="treatment" class="form-control" @bind-Value="patient.Treatment" />
+                                <ValidationMessage For="@(() => patient.Treatment)" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <InputCheckbox id="adjuvant" class="form-check-input" @bind-Value="patient.Adjuvant" />
+                                        <label for="adjuvant" class="form-check-label">Adjuvant</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <InputCheckbox id="palliative" class="form-check-input" @bind-Value="patient.Palliative" />
+                                        <label for="palliative" class="form-check-label">Palliative</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="dispensedDate" class="form-label">Dispensed Date</label>
+                                        <InputDateNullable id="dispensedDate" class="form-control" @bind-Value="patient.DispensedDate" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="imagingDate" class="form-label">Imaging Date</label>
+                                        <InputDateNullable id="imagingDate" class="form-control" @bind-Value="patient.ImagingDate" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="resultsDate" class="form-label">Results Date</label>
+                                        <InputDateNullable id="resultsDate" class="form-control" @bind-Value="patient.ResultsDate" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="nextCycleDue" class="form-label">Next Cycle Due</label>
+                                        <InputDateNullable id="nextCycleDue" class="form-control" @bind-Value="patient.NextCycleDue" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="nextAppointment" class="form-label">Next Appointment</label>
+                                <InputDateNullable id="nextAppointment" class="form-control" @bind-Value="patient.NextAppointment" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="comments" class="form-label">Comments</label>
+                                <InputTextArea id="comments" class="form-control" rows="4" @bind-Value="patient.Comments" />
+                            </div>
+
+                            @if (originalPatient != null && (originalPatient.WaitTimeReferralToCounselling.HasValue || originalPatient.TreatTime.HasValue))
+                            {
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Calculated Fields (Read-Only)</h6>
+                                    @if (originalPatient.WaitTimeReferralToCounselling.HasValue)
+                                    {
+                                        <div><strong>Wait Time (Referral to Counselling):</strong> @originalPatient.WaitTimeReferralToCounselling.Value days</div>
+                                    }
+                                    @if (originalPatient.TreatTime.HasValue)
+                                    {
+                                        <div><strong>Treatment Time (Counselling to Dispensed):</strong> @originalPatient.TreatTime.Value days</div>
+                                    }
+                                </div>
+                            }
+
+                            @if (error != null)
+                            {
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    @error
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </button>
+                                <button type="submit" class="btn btn-success" disabled="@submitting">
+                                    @if (submitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-save me-2"></i>
+                                    }
+                                    Save Changes
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    [SupplyParameterFromForm]
+    private UpdatePatientTrackingDto patient { get; set; } = new UpdatePatientTrackingDto();
+    
+    private PatientTrackingDto? originalPatient;
+    private string? error;
+    private bool submitting = false;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPatient();
+    }
+
+    private async Task LoadPatient()
+    {
+        loading = true;
+        try
+        {
+            originalPatient = await PatientService.GetPatientByIdAsync(Id);
+            if (originalPatient != null)
+            {
+                // Map PatientTrackingDto to UpdatePatientTrackingDto
+                patient = new UpdatePatientTrackingDto
+                {
+                    MRN = originalPatient.MRN,
+                    Name = originalPatient.Name,
+                    ReferralDate = originalPatient.ReferralDate,
+                    CounsellingDate = originalPatient.CounsellingDate,
+                    DelayReason = originalPatient.DelayReason,
+                    SurveyReturned = originalPatient.SurveyReturned,
+                    IsEnglishFirstLanguage = originalPatient.IsEnglishFirstLanguage,
+                    Treatment = originalPatient.Treatment,
+                    Adjuvant = originalPatient.Adjuvant,
+                    Palliative = originalPatient.Palliative,
+                    DispensedDate = originalPatient.DispensedDate,
+                    ImagingDate = originalPatient.ImagingDate,
+                    ResultsDate = originalPatient.ResultsDate,
+                    NextCycleDue = originalPatient.NextCycleDue,
+                    NextAppointment = originalPatient.NextAppointment,
+                    Comments = originalPatient.Comments
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error loading patient: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task UpdatePatient()
+    {
+        submitting = true;
+        error = null;
+        
+        try
+        {
+            var result = await PatientService.UpdatePatientAsync(Id, patient);
+            if (result != null)
+            {
+                Navigation.NavigateTo($"/patient/{Id}");
+            }
+            else
+            {
+                error = "Failed to update patient. Please check if the MRN conflicts with another patient.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo($"/patient/{Id}");
+    }
+}

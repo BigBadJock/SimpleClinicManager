@@ -13,7 +13,7 @@ public interface IPatientService
     Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync();
     Task<IEnumerable<PatientTrackingDto>> SearchPatientsAsync(string searchTerm);
     Task<PatientTrackingDto?> CreatePatientAsync(CreatePatientTrackingDto patient);
-    Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, CreatePatientTrackingDto patient);
+    Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, UpdatePatientTrackingDto patient);
     Task<bool> DeletePatientAsync(Guid id);
 }
 
@@ -76,7 +76,7 @@ public class PatientService : IPatientService
         return null;
     }
 
-    public async Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, CreatePatientTrackingDto patient)
+    public async Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, UpdatePatientTrackingDto patient)
     {
         var response = await _httpClient.PutAsJsonAsync($"api/patients/{id}", patient);
         if (response.IsSuccessStatusCode)
