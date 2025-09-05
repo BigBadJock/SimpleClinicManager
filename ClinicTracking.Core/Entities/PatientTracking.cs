@@ -11,7 +11,6 @@ public class PatientTracking
     public string? DelayReason { get; set; }
     public bool SurveyReturned { get; set; }
     public bool IsEnglishFirstLanguage { get; set; } = true;
-    public string? Treatment { get; set; }
     public Guid? TreatmentId { get; set; }
     public virtual Treatment? TreatmentLookup { get; set; }
     public bool Adjuvant { get; set; }
