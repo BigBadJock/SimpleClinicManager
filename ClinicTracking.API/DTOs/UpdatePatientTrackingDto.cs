@@ -29,6 +29,8 @@ public class UpdatePatientTrackingDto
     [StringLength(100)]
     public string? Treatment { get; set; }
 
+    public Guid? TreatmentId { get; set; }
+
     public bool Adjuvant { get; set; }
     public bool Palliative { get; set; }
     public DateTime? DispensedDate { get; set; }

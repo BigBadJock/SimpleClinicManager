@@ -29,6 +29,8 @@ public class CreatePatientTrackingDto
     [StringLength(100)]
     public string? Treatment { get; set; }
 
+    public Guid? TreatmentId { get; set; }
+
     public bool Adjuvant { get; set; } = false;
     public bool Palliative { get; set; } = false;
     public DateTime? DispensedDate { get; set; }

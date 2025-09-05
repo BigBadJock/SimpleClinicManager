@@ -17,6 +17,7 @@ public class PatientRepository : IPatientRepository
     public async Task<IEnumerable<PatientTracking>> GetAllAsync()
     {
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .OrderByDescending(p => p.CreatedOn)
             .ToListAsync();
     }
@@ -24,18 +25,21 @@ public class PatientRepository : IPatientRepository
     public async Task<PatientTracking?> GetByIdAsync(Guid id)
     {
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<PatientTracking?> GetByMRNAsync(string mrn)
     {
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .FirstOrDefaultAsync(p => p.MRN == mrn);
     }
 
     public async Task<IEnumerable<PatientTracking>> GetAwaitingCounsellingAsync()
     {
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .Where(p => p.CounsellingDate == null)
             .OrderBy(p => p.ReferralDate)
             .ToListAsync();
@@ -44,6 +48,7 @@ public class PatientRepository : IPatientRepository
     public async Task<IEnumerable<PatientTracking>> GetAwaitingTreatmentAsync()
     {
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .Where(p => p.CounsellingDate != null && p.DispensedDate == null)
             .OrderBy(p => p.CounsellingDate)
             .ToListAsync();
@@ -53,6 +58,7 @@ public class PatientRepository : IPatientRepository
     {
         var today = DateTime.Today;
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .Where(p => (p.NextAppointment != null && p.NextAppointment <= today) ||
                        (p.NextCycleDue != null && p.NextCycleDue <= today))
             .OrderBy(p => p.NextAppointment ?? p.NextCycleDue)
@@ -68,6 +74,7 @@ public class PatientRepository : IPatientRepository
 
         var normalizedSearchTerm = searchTerm.ToLower();
         return await _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
             .Where(p => p.Name.ToLower().Contains(normalizedSearchTerm) || 
                        p.MRN.ToLower().Contains(normalizedSearchTerm))
             .OrderByDescending(p => p.CreatedOn)
