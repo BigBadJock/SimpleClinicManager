@@ -1,6 +1,9 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">ClinicTracking.Client</a>
+        <a class="navbar-brand" href="">
+            <i class="fas fa-heartbeat me-2"></i>
+            Clinic Tracking
+        </a>
     </div>
 </div>
 
@@ -10,21 +13,53 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <i class="fas fa-home me-2" aria-hidden="true"></i> Dashboard
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="add-patient">
+                <i class="fas fa-user-plus me-2" aria-hidden="true"></i> Add Patient
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
+            <div class="nav-link text-light fw-bold border-bottom mb-2">
+                <i class="fas fa-filter me-2"></i> Quick Filters
+            </div>
+        </div>
+
+        <div class="nav-item px-3 ps-4">
+            <a class="nav-link text-warning" href="javascript:void(0)" onclick="filterAwaitingCounselling()">
+                <i class="fas fa-clock me-2" aria-hidden="true"></i> Awaiting Counselling
+            </a>
+        </div>
+
+        <div class="nav-item px-3 ps-4">
+            <a class="nav-link text-info" href="javascript:void(0)" onclick="filterAwaitingTreatment()">
+                <i class="fas fa-pills me-2" aria-hidden="true"></i> Awaiting Treatment
+            </a>
+        </div>
+
+        <div class="nav-item px-3 ps-4">
+            <a class="nav-link text-danger" href="javascript:void(0)" onclick="filterFollowUpDue()">
+                <i class="fas fa-calendar-check me-2" aria-hidden="true"></i> Follow-up Due
+            </a>
         </div>
     </nav>
 </div>
+
+<script>
+    function filterAwaitingCounselling() {
+        window.location.href = '/?filter=awaiting-counselling';
+    }
+    
+    function filterAwaitingTreatment() {
+        window.location.href = '/?filter=awaiting-treatment';
+    }
+    
+    function filterFollowUpDue() {
+        window.location.href = '/?filter=follow-up-due';
+    }
+</script>
 

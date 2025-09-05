@@ -1,0 +1,433 @@
+@page "/patient/{Id:guid}"
+@using ClinicTracking.Client.DTOs
+@using ClinicTracking.Client.Services
+@inject IPatientService PatientService
+@inject NavigationManager Navigation
+
+<PageTitle>Patient Details</PageTitle>
+
+@if (loading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading patient details...</p>
+    </div>
+}
+else if (patient == null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Patient not found.
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>
+                        <i class="fas fa-user me-2"></i>
+                        @patient.Name
+                        <small class="text-muted">(@patient.MRN)</small>
+                    </h2>
+                    <div>
+                        <button class="btn btn-warning me-2" @onclick="EditPatient">
+                            <i class="fas fa-edit me-2"></i>Edit
+                        </button>
+                        <button class="btn btn-secondary" @onclick="BackToList">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Timeline & Dates
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Referral Date:</strong>
+                            </div>
+                            <div class="col-6">
+                                @patient.ReferralDate.ToString("dd/MM/yyyy")
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Counselling Date:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.CounsellingDate.HasValue)
+                                {
+                                    @patient.CounsellingDate.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">Pending</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Dispensed Date:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.DispensedDate.HasValue)
+                                {
+                                    @patient.DispensedDate.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not dispensed</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Imaging Date:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.ImagingDate.HasValue)
+                                {
+                                    @patient.ImagingDate.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not scheduled</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Results Date:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.ResultsDate.HasValue)
+                                {
+                                    @patient.ResultsDate.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No results</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Next Cycle Due:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.NextCycleDue.HasValue)
+                                {
+                                    var isOverdue = patient.NextCycleDue.Value.Date < DateTime.Today;
+                                    <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                        @patient.NextCycleDue.Value.ToString("dd/MM/yyyy")
+                                    </span>
+                                    @if (isOverdue)
+                                    {
+                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not scheduled</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Next Appointment:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.NextAppointment.HasValue)
+                                {
+                                    var isOverdue = patient.NextAppointment.Value.Date < DateTime.Today;
+                                    <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                        @patient.NextAppointment.Value.ToString("dd/MM/yyyy")
+                                    </span>
+                                    @if (isOverdue)
+                                    {
+                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not scheduled</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-pills me-2"></i>
+                            Treatment Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Treatment:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (!string.IsNullOrEmpty(patient.Treatment))
+                                {
+                                    @patient.Treatment
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not specified</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Treatment Type:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.Adjuvant)
+                                {
+                                    <span class="badge bg-secondary me-1">Adjuvant</span>
+                                }
+                                @if (patient.Palliative)
+                                {
+                                    <span class="badge bg-info">Palliative</span>
+                                }
+                                @if (!patient.Adjuvant && !patient.Palliative)
+                                {
+                                    <span class="text-muted">Not specified</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(patient.DelayReason))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <strong>Delay Reason:</strong>
+                                    <div class="mt-1 p-2 bg-light rounded">
+                                        @patient.DelayReason
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Survey Returned:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.SurveyReturned)
+                                {
+                                    <span class="badge bg-success">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">No</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>English First Language:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (patient.IsEnglishFirstLanguage)
+                                {
+                                    <span class="badge bg-success">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">No</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Calculated Metrics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-8">
+                                <strong>Wait Time (Referral to Counselling):</strong>
+                            </div>
+                            <div class="col-4 text-end">
+                                @if (patient.WaitTimeReferralToCounselling.HasValue)
+                                {
+                                    var waitTime = patient.WaitTimeReferralToCounselling.Value;
+                                    <span class="badge @(waitTime > 14 ? "bg-danger" : waitTime > 7 ? "bg-warning" : "bg-success")">
+                                        @waitTime days
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-8">
+                                <strong>Treatment Time (Counselling to Dispensed):</strong>
+                            </div>
+                            <div class="col-4 text-end">
+                                @if (patient.TreatTime.HasValue)
+                                {
+                                    <span class="badge bg-info">@patient.TreatTime.Value days</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-clock me-2"></i>
+                            Audit Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Created By:</strong>
+                            </div>
+                            <div class="col-6">
+                                @patient.CreatedBy
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Created On:</strong>
+                            </div>
+                            <div class="col-6">
+                                @patient.CreatedOn.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(patient.ModifiedBy))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <strong>Modified By:</strong>
+                                </div>
+                                <div class="col-6">
+                                    @patient.ModifiedBy
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <strong>Modified On:</strong>
+                                </div>
+                                <div class="col-6">
+                                    @patient.ModifiedOn?.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(patient.Comments))
+        {
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-comments me-2"></i>
+                                Comments
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded">
+                                @patient.Comments
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    private PatientTrackingDto? patient;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPatient();
+    }
+
+    private async Task LoadPatient()
+    {
+        loading = true;
+        try
+        {
+            patient = await PatientService.GetPatientByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading patient: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void EditPatient()
+    {
+        Navigation.NavigateTo($"/edit-patient/{Id}");
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

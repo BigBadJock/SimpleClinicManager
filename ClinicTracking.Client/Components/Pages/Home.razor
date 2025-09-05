@@ -1,7 +1,362 @@
 ﻿@page "/"
+@using ClinicTracking.Client.DTOs
+@using ClinicTracking.Client.Services
+@inject IPatientService PatientService
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Clinic Tracking - Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-heartbeat me-2"></i>
+                Clinic Patient Tracking Dashboard
+            </h1>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-clock me-2"></i>
+                        Awaiting Counselling
+                    </h5>
+                    <h2 class="card-text">@awaitingCounsellingCount</h2>
+                    <button class="btn btn-dark" @onclick="ShowAwaitingCounselling">View Details</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-pills me-2"></i>
+                        Awaiting Treatment
+                    </h5>
+                    <h2 class="card-text">@awaitingTreatmentCount</h2>
+                    <button class="btn btn-light" @onclick="ShowAwaitingTreatment">View Details</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Follow-up Due
+                    </h5>
+                    <h2 class="card-text">@followUpDueCount</h2>
+                    <button class="btn btn-light" @onclick="ShowFollowUpDue">View Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search by patient name or MRN..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
+                <button class="btn btn-primary" @onclick="SearchPatients">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-success" @onclick="AddNewPatient">
+                <i class="fas fa-plus"></i> Add New Patient
+            </button>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (patients != null && patients.Any())
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    @if (!string.IsNullOrEmpty(currentFilter))
+                    {
+                        <span>@currentFilter</span>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ClearFilter">
+                            Clear Filter
+                        </button>
+                    }
+                    else
+                    {
+                        <span>All Patients</span>
+                    }
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MRN</th>
+                                <th>Name</th>
+                                <th>Referral Date</th>
+                                <th>Counselling Date</th>
+                                <th>Treatment</th>
+                                <th>Wait Time (days)</th>
+                                <th>Treatment Time (days)</th>
+                                <th>Next Appointment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var patient in patients)
+                            {
+                                <tr>
+                                    <td><strong>@patient.MRN</strong></td>
+                                    <td>@patient.Name</td>
+                                    <td>@patient.ReferralDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (patient.CounsellingDate.HasValue)
+                                        {
+                                            @patient.CounsellingDate.Value.ToString("dd/MM/yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pending</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(patient.Treatment))
+                                        {
+                                            @patient.Treatment
+                                            @if (patient.Adjuvant)
+                                            {
+                                                <small class="badge bg-secondary">Adjuvant</small>
+                                            }
+                                            @if (patient.Palliative)
+                                            {
+                                                <small class="badge bg-info">Palliative</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not specified</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.WaitTimeReferralToCounselling.HasValue)
+                                        {
+                                            var waitTime = patient.WaitTimeReferralToCounselling.Value;
+                                            <span class="@(waitTime > 14 ? "text-danger fw-bold" : waitTime > 7 ? "text-warning" : "text-success")">
+                                                @waitTime
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.TreatTime.HasValue)
+                                        {
+                                            <span class="text-info">@patient.TreatTime.Value</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.NextAppointment.HasValue)
+                                        {
+                                            var isOverdue = patient.NextAppointment.Value.Date < DateTime.Today;
+                                            <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                                @patient.NextAppointment.Value.ToString("dd/MM/yyyy")
+                                            </span>
+                                            @if (isOverdue)
+                                            {
+                                                <i class="fas fa-exclamation-triangle text-danger"></i>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">None scheduled</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary me-1" @onclick="() => ViewPatient(patient.Id)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning me-1" @onclick="() => EditPatient(patient.Id)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!loading)
+    {
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <span>No patients found matching "@searchTerm".</span>
+            }
+            else
+            {
+                <span>No patients found. <a href="/add-patient" class="alert-link">Add the first patient</a>.</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<PatientTrackingDto>? patients;
+    private int awaitingCounsellingCount = 0;
+    private int awaitingTreatmentCount = 0;
+    private int followUpDueCount = 0;
+    private string searchTerm = "";
+    private string currentFilter = "";
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPatients();
+        await LoadCounts();
+    }
+
+    private async Task LoadPatients()
+    {
+        loading = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                patients = await PatientService.SearchPatientsAsync(searchTerm);
+                currentFilter = $"Search results for '{searchTerm}'";
+            }
+            else
+            {
+                patients = await PatientService.GetAllPatientsAsync();
+                currentFilter = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading patients: {ex.Message}");
+            patients = new List<PatientTrackingDto>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadCounts()
+    {
+        try
+        {
+            var awaitingCounselling = await PatientService.GetAwaitingCounsellingAsync();
+            var awaitingTreatment = await PatientService.GetAwaitingTreatmentAsync();
+            var followUpDue = await PatientService.GetFollowUpDueAsync();
+
+            awaitingCounsellingCount = awaitingCounselling.Count();
+            awaitingTreatmentCount = awaitingTreatment.Count();
+            followUpDueCount = followUpDue.Count();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading counts: {ex.Message}");
+        }
+    }
+
+    private async Task SearchPatients()
+    {
+        await LoadPatients();
+    }
+
+    private async Task OnSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchPatients();
+        }
+    }
+
+    private async Task ShowAwaitingCounselling()
+    {
+        loading = true;
+        try
+        {
+            patients = await PatientService.GetAwaitingCounsellingAsync();
+            currentFilter = "Patients Awaiting Counselling";
+            searchTerm = "";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ShowAwaitingTreatment()
+    {
+        loading = true;
+        try
+        {
+            patients = await PatientService.GetAwaitingTreatmentAsync();
+            currentFilter = "Patients Awaiting Treatment";
+            searchTerm = "";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ShowFollowUpDue()
+    {
+        loading = true;
+        try
+        {
+            patients = await PatientService.GetFollowUpDueAsync();
+            currentFilter = "Patients with Follow-up Due";
+            searchTerm = "";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ClearFilter()
+    {
+        searchTerm = "";
+        currentFilter = "";
+        await LoadPatients();
+    }
+
+    private void AddNewPatient()
+    {
+        Navigation.NavigateTo("/add-patient");
+    }
+
+    private void ViewPatient(Guid id)
+    {
+        Navigation.NavigateTo($"/patient/{id}");
+    }
+
+    private void EditPatient(Guid id)
+    {
+        Navigation.NavigateTo($"/edit-patient/{id}");
+    }
+}

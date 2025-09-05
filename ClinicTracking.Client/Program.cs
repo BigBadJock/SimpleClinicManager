@@ -1,10 +1,17 @@
 using ClinicTracking.Client.Components;
+using ClinicTracking.Client.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add HttpClient for API calls - configured for server-side calls
+builder.Services.AddHttpClient<IPatientService, PatientService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5014/");
+});
 
 var app = builder.Build();
 

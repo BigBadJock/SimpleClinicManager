@@ -1,0 +1,37 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace ClinicTracking.Client.DTOs;
+
+public class CreatePatientTrackingDto
+{
+    [Required]
+    [StringLength(50)]
+    public string MRN { get; set; } = null!;
+
+    [Required]
+    [StringLength(200)]
+    public string Name { get; set; } = null!;
+
+    [Required]
+    public DateTime ReferralDate { get; set; } = DateTime.Today;
+
+    public DateTime? CounsellingDate { get; set; }
+
+    [StringLength(500)]
+    public string? DelayReason { get; set; }
+
+    public bool SurveyReturned { get; set; } = false;
+    public bool IsEnglishFirstLanguage { get; set; } = true;
+
+    [StringLength(100)]
+    public string? Treatment { get; set; }
+
+    public bool Adjuvant { get; set; } = false;
+    public bool Palliative { get; set; } = false;
+    public DateTime? DispensedDate { get; set; }
+    public DateTime? ImagingDate { get; set; }
+    public DateTime? ResultsDate { get; set; }
+    public DateTime? NextCycleDue { get; set; }
+    public DateTime? NextAppointment { get; set; }
+    public string? Comments { get; set; }
+}
