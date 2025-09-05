@@ -50,9 +50,6 @@ public class ClinicTrackingDbContext : DbContext
             entity.Property(e => e.IsEnglishFirstLanguage)
                 .HasDefaultValue(true);
 
-            entity.Property(e => e.Treatment)
-                .HasMaxLength(100);
-
             entity.Property(e => e.Adjuvant)
                 .HasDefaultValue(false);
 

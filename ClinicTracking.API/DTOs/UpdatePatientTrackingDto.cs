@@ -26,9 +26,6 @@ public class UpdatePatientTrackingDto
     public bool SurveyReturned { get; set; }
     public bool IsEnglishFirstLanguage { get; set; }
 
-    [StringLength(100)]
-    public string? Treatment { get; set; }
-
     public Guid? TreatmentId { get; set; }
 
     public bool Adjuvant { get; set; }

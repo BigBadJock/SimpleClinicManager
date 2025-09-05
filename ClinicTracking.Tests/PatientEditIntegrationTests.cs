@@ -42,7 +42,6 @@ public class PatientEditIntegrationTests
         Assert.Null(dto.CounsellingDate);
         Assert.Null(dto.CounsellingBy);
         Assert.Null(dto.DelayReason);
-        Assert.Null(dto.Treatment);
         Assert.Null(dto.DispensedDate);
         Assert.Null(dto.ImagingDate);
         Assert.Null(dto.ResultsDate);

@@ -171,7 +171,6 @@ if (app.Environment.IsDevelopment())
                 ReferralDate = DateTime.Today.AddDays(-15),
                 CounsellingDate = DateTime.Today.AddDays(-5),
                 DispensedDate = DateTime.Today.AddDays(-2),
-                Treatment = "Chemotherapy",
                 TreatmentId = Guid.Parse("11111111-1111-1111-1111-111111111111"), // Chemotherapy
                 NextAppointment = DateTime.Today.AddDays(7),
                 CreatedBy = "system",
