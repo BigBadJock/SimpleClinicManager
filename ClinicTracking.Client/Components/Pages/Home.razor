@@ -107,6 +107,7 @@
                                 <th>Referral Date</th>
                                 <th>Counselling Date</th>
                                 <th>Treatment</th>
+                                <th>Treatment Type</th>
                                 <th>Wait Time (days)</th>
                                 <th>Treatment Time (days)</th>
                                 <th>Next Appointment</th>
@@ -134,14 +135,20 @@
                                         @if (!string.IsNullOrEmpty(patient.Treatment))
                                         {
                                             @patient.Treatment
-                                            @if (patient.Adjuvant)
-                                            {
-                                                <small class="badge bg-secondary">Adjuvant</small>
-                                            }
-                                            @if (patient.Palliative)
-                                            {
-                                                <small class="badge bg-info">Palliative</small>
-                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not specified</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.Adjuvant)
+                                        {
+                                            <span class="badge bg-secondary">Adjuvant</span>
+                                        }
+                                        else if (patient.Palliative)
+                                        {
+                                            <span class="badge bg-info">Palliative</span>
                                         }
                                         else
                                         {
