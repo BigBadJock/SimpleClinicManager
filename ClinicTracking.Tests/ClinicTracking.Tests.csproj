@@ -22,4 +22,10 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ClinicTracking.Core\ClinicTracking.Core.csproj" />
+    <ProjectReference Include="..\ClinicTracking.API\ClinicTracking.API.csproj" />
+    <ProjectReference Include="..\ClinicTracking.Client\ClinicTracking.Client.csproj" />
+  </ItemGroup>
+
 </Project>
