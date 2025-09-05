@@ -9,40 +9,62 @@ function destroyChart(chartId) {
     }
 }
 
+function showFallback(chartId) {
+    const canvas = document.getElementById(chartId);
+    const fallback = document.getElementById(chartId + 'Fallback');
+    if (canvas) canvas.style.display = 'none';
+    if (fallback) fallback.style.display = 'block';
+}
+
+function hideCanvasIfChartFails(chartId) {
+    if (typeof Chart === 'undefined') {
+        showFallback(chartId);
+        return true;
+    }
+    return false;
+}
+
 window.renderWaitTimeChart = function(data) {
+    if (hideCanvasIfChartFails('waitTimeChart')) return;
+    
     destroyChart('waitTimeChart');
     
-    const ctx = document.getElementById('waitTimeChart').getContext('2d');
-    chartInstances['waitTimeChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.range),
-            datasets: [{
-                label: 'Number of Patients',
-                data: data.map(d => d.count),
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+    try {
+        const ctx = document.getElementById('waitTimeChart').getContext('2d');
+        chartInstances['waitTimeChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.range),
+                datasets: [{
+                    label: 'Number of Patients',
+                    data: data.map(d => d.count),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Chart rendering failed:', error);
+        showFallback('waitTimeChart');
+    }
 };
 
 window.renderTreatmentTimeChart = function(data) {
