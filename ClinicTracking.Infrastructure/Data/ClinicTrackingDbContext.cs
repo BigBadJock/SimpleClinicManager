@@ -11,6 +11,7 @@ public class ClinicTrackingDbContext : DbContext
 
 
     public DbSet<PatientTracking> PatientTrackings { get; set; }
+    public DbSet<Treatment> Treatments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,6 +72,43 @@ public class ClinicTrackingDbContext : DbContext
             // Ignore calculated properties as they are not stored in the database
             entity.Ignore(e => e.WaitTimeReferralToCounselling);
             entity.Ignore(e => e.TreatTime);
+
+            // Configure relationship with Treatment
+            entity.HasOne(e => e.TreatmentLookup)
+                .WithMany(t => t.Patients)
+                .HasForeignKey(e => e.TreatmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Treatment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(e => e.Name)
+                .IsUnique();
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.ModifiedBy)
+                .HasMaxLength(256);
+
+            entity.Property(e => e.ModifiedOn)
+                .HasDefaultValueSql("GETUTCDATE()");
         });
     }
 }

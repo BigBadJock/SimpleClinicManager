@@ -11,6 +11,8 @@ public class PatientTrackingDto
     public bool SurveyReturned { get; set; }
     public bool IsEnglishFirstLanguage { get; set; } = true;
     public string? Treatment { get; set; }
+    public Guid? TreatmentId { get; set; }
+    public string? TreatmentName { get; set; }
     public bool Adjuvant { get; set; }
     public bool Palliative { get; set; }
     public DateTime? DispensedDate { get; set; }

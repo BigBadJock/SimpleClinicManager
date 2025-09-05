@@ -252,6 +252,8 @@ public class PatientsController : ControllerBase
             SurveyReturned = patient.SurveyReturned,
             IsEnglishFirstLanguage = patient.IsEnglishFirstLanguage,
             Treatment = patient.Treatment,
+            TreatmentId = patient.TreatmentId,
+            TreatmentName = patient.TreatmentLookup?.Name,
             Adjuvant = patient.Adjuvant,
             Palliative = patient.Palliative,
             DispensedDate = patient.DispensedDate,
@@ -281,6 +283,7 @@ public class PatientsController : ControllerBase
             SurveyReturned = dto.SurveyReturned,
             IsEnglishFirstLanguage = dto.IsEnglishFirstLanguage,
             Treatment = dto.Treatment,
+            TreatmentId = dto.TreatmentId,
             Adjuvant = dto.Adjuvant,
             Palliative = dto.Palliative,
             DispensedDate = dto.DispensedDate,
@@ -302,6 +305,7 @@ public class PatientsController : ControllerBase
         patient.SurveyReturned = dto.SurveyReturned;
         patient.IsEnglishFirstLanguage = dto.IsEnglishFirstLanguage;
         patient.Treatment = dto.Treatment;
+        patient.TreatmentId = dto.TreatmentId;
         patient.Adjuvant = dto.Adjuvant;
         patient.Palliative = dto.Palliative;
         patient.DispensedDate = dto.DispensedDate;
