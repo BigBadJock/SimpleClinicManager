@@ -13,6 +13,11 @@ builder.Services.AddHttpClient<IPatientService, PatientService>(client =>
     client.BaseAddress = new Uri("http://localhost:5014/");
 });
 
+builder.Services.AddHttpClient<ITreatmentService, TreatmentService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5014/");
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
