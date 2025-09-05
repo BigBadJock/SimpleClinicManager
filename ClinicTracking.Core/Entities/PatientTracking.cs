@@ -7,6 +7,7 @@ public class PatientTracking
     public string Name { get; set; } = null!;
     public DateTime ReferralDate { get; set; }
     public DateTime? CounsellingDate { get; set; }
+    public string? CounsellingBy { get; set; }
     public string? DelayReason { get; set; }
     public bool SurveyReturned { get; set; }
     public bool IsEnglishFirstLanguage { get; set; } = true;

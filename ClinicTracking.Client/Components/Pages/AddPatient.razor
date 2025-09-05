@@ -55,6 +55,12 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="counsellingBy" class="form-label">Counselling By</label>
+                            <InputText id="counsellingBy" class="form-control" @bind-Value="patient.CounsellingBy" placeholder="Enter staff member who conducted counselling" />
+                            <ValidationMessage For="@(() => patient.CounsellingBy)" />
+                        </div>
+
+                        <div class="mb-3">
                             <label for="delayReason" class="form-label">Delay Reason</label>
                             <InputTextArea id="delayReason" class="form-control" rows="3" @bind-Value="patient.DelayReason" />
                             <ValidationMessage For="@(() => patient.DelayReason)" />

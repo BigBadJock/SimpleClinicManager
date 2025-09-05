@@ -248,6 +248,7 @@ public class PatientsController : ControllerBase
             Name = patient.Name,
             ReferralDate = patient.ReferralDate,
             CounsellingDate = patient.CounsellingDate,
+            CounsellingBy = patient.CounsellingBy,
             DelayReason = patient.DelayReason,
             SurveyReturned = patient.SurveyReturned,
             IsEnglishFirstLanguage = patient.IsEnglishFirstLanguage,
@@ -277,6 +278,7 @@ public class PatientsController : ControllerBase
             Name = dto.Name,
             ReferralDate = dto.ReferralDate,
             CounsellingDate = dto.CounsellingDate,
+            CounsellingBy = dto.CounsellingBy,
             DelayReason = dto.DelayReason,
             SurveyReturned = dto.SurveyReturned,
             IsEnglishFirstLanguage = dto.IsEnglishFirstLanguage,
@@ -298,6 +300,7 @@ public class PatientsController : ControllerBase
         patient.Name = dto.Name;
         patient.ReferralDate = dto.ReferralDate;
         patient.CounsellingDate = dto.CounsellingDate;
+        patient.CounsellingBy = dto.CounsellingBy;
         patient.DelayReason = dto.DelayReason;
         patient.SurveyReturned = dto.SurveyReturned;
         patient.IsEnglishFirstLanguage = dto.IsEnglishFirstLanguage;
