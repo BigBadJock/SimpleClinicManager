@@ -157,9 +157,8 @@
             var result = await TreatmentService.GetAllTreatmentsAsync();
             treatments = result.ToList();
         }
-        catch (Exception ex)
+        catch
         {
-            // Log error and show user-friendly message
             await JSRuntime.InvokeVoidAsync("alert", "Error loading treatments. Please try again.");
         }
     }
@@ -167,8 +166,9 @@
     private async Task ShowCreateModal()
     {
         isEditing = false;
+        editingId = Guid.Empty;
         treatmentForm = new CreateTreatmentDto();
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('treatmentModal')).show()");
+        await SafeShowModal();
     }
 
     private async Task ShowEditModal(TreatmentDto treatment)
@@ -180,7 +180,7 @@
             Name = treatment.Name,
             Description = treatment.Description
         };
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('treatmentModal')).show()");
+        await SafeShowModal();
     }
 
     private async Task SaveTreatment()
@@ -202,10 +202,10 @@
                 await TreatmentService.CreateTreatmentAsync(treatmentForm);
             }
 
-            await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('treatmentModal')).hide()");
+            await SafeHideModal();
             await LoadTreatments();
         }
-        catch (Exception ex)
+        catch
         {
             await JSRuntime.InvokeVoidAsync("alert", "Error saving treatment. Please try again.");
         }
@@ -223,9 +223,9 @@
             return;
         }
 
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
             $"Are you sure you want to delete the treatment '{treatment.Name}'? This action cannot be undone.");
-        
+
         if (confirmed)
         {
             try
@@ -240,10 +240,23 @@
                     await JSRuntime.InvokeVoidAsync("alert", "Error deleting treatment. It may be in use by patients.");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Error deleting treatment. Please try again.");
             }
         }
+    }
+
+    // Helper wrappers so failures don’t crash the circuit
+    private async Task SafeShowModal()
+    {
+        try { await JSRuntime.InvokeVoidAsync("showModal", "#treatmentModal"); }
+        catch { /* swallow; check console if not appearing */ }
+    }
+
+    private async Task SafeHideModal()
+    {
+        try { await JSRuntime.InvokeVoidAsync("hideModal", "#treatmentModal"); }
+        catch { }
     }
 }
