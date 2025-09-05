@@ -27,13 +27,13 @@ public class TreatmentsController : ControllerBase
         {
             var treatments = await _unitOfWork.Treatments.GetAllAsync();
             var treatmentDtos = new List<TreatmentDto>();
-            
+
             foreach (var treatment in treatments)
             {
                 var isInUse = await _unitOfWork.Treatments.IsInUseAsync(treatment.Id);
                 treatmentDtos.Add(MapToDto(treatment, isInUse));
             }
-            
+
             return Ok(treatmentDtos);
         }
         catch (Exception ex)
@@ -65,7 +65,7 @@ public class TreatmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "ClinicAdmin")]
+    //[Authorize(Roles = "ClinicAdmin")]
     public async Task<ActionResult<TreatmentDto>> Create([FromBody] CreateTreatmentDto createDto)
     {
         try
@@ -79,7 +79,7 @@ public class TreatmentsController : ControllerBase
 
             var treatment = MapFromCreateDto(createDto);
             treatment.CreatedBy = User.Identity?.Name ?? "Unknown";
-            
+
             await _unitOfWork.Treatments.AddAsync(treatment);
             await _unitOfWork.SaveChangesAsync();
 
@@ -94,7 +94,7 @@ public class TreatmentsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "ClinicAdmin")]
+    //[Authorize(Roles = "ClinicAdmin")]
     public async Task<ActionResult<TreatmentDto>> Update(Guid id, [FromBody] UpdateTreatmentDto updateDto)
     {
         try
@@ -131,7 +131,7 @@ public class TreatmentsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "ClinicAdmin")]
+    //[Authorize(Roles = "ClinicAdmin")]
     public async Task<ActionResult> Delete(Guid id)
     {
         try

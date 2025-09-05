@@ -1,0 +1,17 @@
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sortable-header i.fa-sort {
+    opacity: 0.5;
+}
+
+.sortable-header:hover i.fa-sort {
+    opacity: 0.8;
+}
