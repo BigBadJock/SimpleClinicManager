@@ -2,6 +2,7 @@
 @using ClinicTracking.Client.DTOs
 @using ClinicTracking.Client.Services
 @inject IPatientService PatientService
+@inject ITreatmentService TreatmentService
 @inject NavigationManager Navigation
 
 <PageTitle>Add New Patient</PageTitle>
@@ -77,8 +78,29 @@
 
                         <div class="mb-3">
                             <label for="treatment" class="form-label">Treatment</label>
-                            <InputText id="treatment" class="form-control" @bind-Value="patient.Treatment" />
-                            <ValidationMessage For="@(() => patient.Treatment)" />
+                            @if (treatments == null)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            }
+                            else if (!treatments.Any())
+                            {
+                                <div class="alert alert-warning">
+                                    No treatments available. Please <a href="/treatments" target="_blank">manage treatments</a> to add options.
+                                </div>
+                            }
+                            else
+                            {
+                                <InputSelect id="treatment" class="form-select" @bind-Value="patient.TreatmentId">
+                                    <option value="">Select a treatment...</option>
+                                    @foreach (var treatment in treatments)
+                                    {
+                                        <option value="@treatment.Id">@treatment.Name</option>
+                                    }
+                                </InputSelect>
+                            }
+                            <ValidationMessage For="@(() => patient.TreatmentId)" />
                         </div>
 
                         <div class="row">
@@ -172,6 +194,26 @@
     private CreatePatientTrackingDto patient { get; set; } = new CreatePatientTrackingDto();
     private string? error;
     private bool submitting = false;
+    private List<TreatmentDto>? treatments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTreatments();
+    }
+
+    private async Task LoadTreatments()
+    {
+        try
+        {
+            var result = await TreatmentService.GetAllTreatmentsAsync();
+            treatments = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            // Silently fail loading treatments - the UI will show "No treatments available"
+            treatments = new List<TreatmentDto>();
+        }
+    }
 
     private async Task CreatePatient()
     {
