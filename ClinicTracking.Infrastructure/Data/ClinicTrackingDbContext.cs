@@ -9,6 +9,7 @@ public class ClinicTrackingDbContext : DbContext
     {
     }
 
+
     public DbSet<PatientTracking> PatientTrackings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -18,14 +19,14 @@ public class ClinicTrackingDbContext : DbContext
         modelBuilder.Entity<PatientTracking>(entity =>
         {
             entity.HasKey(e => e.Id);
-            
+
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.MRN)
                 .HasMaxLength(50)
                 .IsRequired();
-            
+
             entity.HasIndex(e => e.MRN)
                 .IsUnique();
 
