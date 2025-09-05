@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/ClinicTracking.API.props" />
+</Project>

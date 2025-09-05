@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "pOeWPQOszePMk6t6piSix/QLl7+IhjSFl/cPFiHz60g=",
+  "Source": "ClinicTracking.API",
+  "BasePath": "_content/ClinicTracking.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
