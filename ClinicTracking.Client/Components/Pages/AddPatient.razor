@@ -49,7 +49,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="counsellingDate" class="form-label">Counselling Date</label>
-                                    <InputDate id="counsellingDate" class="form-control" @bind-Value="patient.CounsellingDate" />
+                                    <InputDateNullable id="counsellingDate" class="form-control" @bind-Value="patient.CounsellingDate" />
                                 </div>
                             </div>
                         </div>
@@ -100,13 +100,13 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="dispensedDate" class="form-label">Dispensed Date</label>
-                                    <InputDate id="dispensedDate" class="form-control" @bind-Value="patient.DispensedDate" />
+                                    <InputDateNullable id="dispensedDate" class="form-control" @bind-Value="patient.DispensedDate" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="imagingDate" class="form-label">Imaging Date</label>
-                                    <InputDate id="imagingDate" class="form-control" @bind-Value="patient.ImagingDate" />
+                                    <InputDateNullable id="imagingDate" class="form-control" @bind-Value="patient.ImagingDate" />
                                 </div>
                             </div>
                         </div>
@@ -115,20 +115,20 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="resultsDate" class="form-label">Results Date</label>
-                                    <InputDate id="resultsDate" class="form-control" @bind-Value="patient.ResultsDate" />
+                                    <InputDateNullable id="resultsDate" class="form-control" @bind-Value="patient.ResultsDate" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="nextCycleDue" class="form-label">Next Cycle Due</label>
-                                    <InputDate id="nextCycleDue" class="form-control" @bind-Value="patient.NextCycleDue" />
+                                    <InputDateNullable id="nextCycleDue" class="form-control" @bind-Value="patient.NextCycleDue" />
                                 </div>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="nextAppointment" class="form-label">Next Appointment</label>
-                            <InputDate id="nextAppointment" class="form-control" @bind-Value="patient.NextAppointment" />
+                            <InputDateNullable id="nextAppointment" class="form-control" @bind-Value="patient.NextAppointment" />
                         </div>
 
                         <div class="mb-3">
