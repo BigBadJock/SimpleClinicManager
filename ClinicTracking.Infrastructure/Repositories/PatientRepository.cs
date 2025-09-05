@@ -61,8 +61,15 @@ public class PatientRepository : IPatientRepository
 
     public async Task<IEnumerable<PatientTracking>> SearchAsync(string searchTerm)
     {
+        if (string.IsNullOrEmpty(searchTerm))
+        {
+            return Enumerable.Empty<PatientTracking>();
+        }
+
+        var normalizedSearchTerm = searchTerm.ToLower();
         return await _context.PatientTrackings
-            .Where(p => p.Name.Contains(searchTerm) || p.MRN.Contains(searchTerm))
+            .Where(p => p.Name.ToLower().Contains(normalizedSearchTerm) || 
+                       p.MRN.ToLower().Contains(normalizedSearchTerm))
             .OrderByDescending(p => p.CreatedOn)
             .ToListAsync();
     }
