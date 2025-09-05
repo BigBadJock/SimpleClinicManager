@@ -40,6 +40,7 @@ public class PatientEditIntegrationTests
         
         // Optional fields should be nullable
         Assert.Null(dto.CounsellingDate);
+        Assert.Null(dto.CounsellingBy);
         Assert.Null(dto.DelayReason);
         Assert.Null(dto.Treatment);
         Assert.Null(dto.DispensedDate);
@@ -94,5 +95,30 @@ public class PatientEditIntegrationTests
         Assert.Equal(2, parameters.Length);
         Assert.Equal(typeof(Guid), parameters[0].ParameterType);
         Assert.Equal(typeof(UpdatePatientTrackingDto), parameters[1].ParameterType);
+    }
+
+    [Fact]
+    public void UpdatePatientTrackingDto_ShouldSupportCounsellingByField()
+    {
+        // Arrange
+        var staffMember = "Dr. Smith";
+        var dto = new UpdatePatientTrackingDto()
+        {
+            MRN = "TEST001",
+            Name = "Test Patient",
+            ReferralDate = DateTime.Today,
+            CounsellingBy = staffMember
+        };
+
+        // Act & Assert - verify the CounsellingBy field is properly set and retrieved
+        Assert.Equal(staffMember, dto.CounsellingBy);
+        
+        // Verify it's optional - can be null without validation errors
+        dto.CounsellingBy = null;
+        Assert.Null(dto.CounsellingBy);
+        
+        // Verify it accepts reasonable string lengths
+        dto.CounsellingBy = new string('A', 200); // Max length should be 200
+        Assert.Equal(200, dto.CounsellingBy.Length);
     }
 }

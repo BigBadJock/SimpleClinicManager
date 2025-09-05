@@ -82,6 +82,22 @@ else
 
                         <div class="row mb-3">
                             <div class="col-6">
+                                <strong>Counselling By:</strong>
+                            </div>
+                            <div class="col-6">
+                                @if (!string.IsNullOrEmpty(patient.CounsellingBy))
+                                {
+                                    @patient.CounsellingBy
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not specified</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
                                 <strong>Dispensed Date:</strong>
                             </div>
                             <div class="col-6">

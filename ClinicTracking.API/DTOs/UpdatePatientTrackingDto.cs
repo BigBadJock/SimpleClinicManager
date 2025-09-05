@@ -17,6 +17,9 @@ public class UpdatePatientTrackingDto
 
     public DateTime? CounsellingDate { get; set; }
 
+    [StringLength(200)]
+    public string? CounsellingBy { get; set; }
+
     [StringLength(500)]
     public string? DelayReason { get; set; }
 

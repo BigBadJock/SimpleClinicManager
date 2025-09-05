@@ -37,6 +37,9 @@ public class ClinicTrackingDbContext : DbContext
             entity.Property(e => e.ReferralDate)
                 .IsRequired();
 
+            entity.Property(e => e.CounsellingBy)
+                .HasMaxLength(200);
+
             entity.Property(e => e.DelayReason)
                 .HasMaxLength(500);
 
