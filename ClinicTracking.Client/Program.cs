@@ -10,17 +10,17 @@ builder.Services.AddRazorComponents()
 // Add HttpClient for API calls - configured for server-side calls
 builder.Services.AddHttpClient<IPatientService, PatientService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5014/");
+    client.BaseAddress = new Uri("https://localhost:7132/");
 });
 
 builder.Services.AddHttpClient<ITreatmentService, TreatmentService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5014/");
+    client.BaseAddress = new Uri("https://localhost:7132/");
 });
 
 builder.Services.AddHttpClient<IImportService, ImportService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5014/");
+    client.BaseAddress = new Uri("https://localhost:7132/");
 });
 
 var app = builder.Build();
