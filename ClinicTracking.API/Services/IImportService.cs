@@ -4,6 +4,6 @@ namespace ClinicTracking.API.Services;
 
 public interface IImportService
 {
-    Task<ImportResultDto> ImportFromExcelAsync(Stream fileStream, string fileName, string importedBy);
-    Task<bool> ValidateExcelFileAsync(Stream fileStream);
+    Task<ImportResultDto> ImportFromCsvAsync(Stream fileStream, string fileName, string importedBy);
+    Task<bool> ValidateCsvFileAsync(Stream fileStream);
 }

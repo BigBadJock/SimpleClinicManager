@@ -1,7 +1,6 @@
 using ClinicTracking.API.DTOs;
 using ClinicTracking.Core.Entities;
 using ClinicTracking.Core.Interfaces;
-using OfficeOpenXml;
 using System.Globalization;
 
 namespace ClinicTracking.API.Services;
@@ -11,7 +10,7 @@ public class ImportService : IImportService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ImportService> _logger;
 
-    // Expected Excel headers
+    // Expected CSV headers
     private readonly string[] _expectedHeaders = new[]
     {
         "Referral date", "Counselling date", "Delay Reason", "Survey", "Wait time from ref",
@@ -19,63 +18,41 @@ public class ImportService : IImportService
         "Dispensed", "Treat Time", "Imaging", "Results", "Next cycle due", "Next appt", "comments"
     };
 
-    static ImportService()
-    {
-        // Set EPPlus license once for the entire application
-        try
-        {
-            #pragma warning disable CS0618
-            OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-            #pragma warning restore CS0618
-        }
-        catch
-        {
-            // License already set or not supported in this version
-        }
-    }
-
     public ImportService(IUnitOfWork unitOfWork, ILogger<ImportService> logger)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
-    public Task<bool> ValidateExcelFileAsync(Stream fileStream)
+    public Task<bool> ValidateCsvFileAsync(Stream fileStream)
     {
         try
         {
-            using var package = new ExcelPackage(fileStream);
-            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+            fileStream.Position = 0;
+            using var reader = new StreamReader(fileStream);
             
-            if (worksheet == null || worksheet.Cells.Any() == false)
+            // Read first line to get headers
+            var headerLine = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(headerLine))
                 return Task.FromResult(false);
 
-            // Check if it has at least some expected headers
-            var headerRow = 1;
-            var actualHeaders = new List<string>();
+            var headers = ParseCsvLine(headerLine);
             
-            for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
-            {
-                var headerValue = worksheet.Cells[headerRow, col].Text?.Trim();
-                if (!string.IsNullOrEmpty(headerValue))
-                    actualHeaders.Add(headerValue);
-            }
-
             // Check if we have at least the mandatory headers (Name and MRN)
-            var hasName = actualHeaders.Any(h => h.Equals("Name", StringComparison.OrdinalIgnoreCase));
-            var hasMrn = actualHeaders.Any(h => h.Equals("MRn", StringComparison.OrdinalIgnoreCase) || 
-                                              h.Equals("MRN", StringComparison.OrdinalIgnoreCase));
+            var hasName = headers.Any(h => h.Equals("Name", StringComparison.OrdinalIgnoreCase));
+            var hasMrn = headers.Any(h => h.Equals("MRn", StringComparison.OrdinalIgnoreCase) || 
+                                         h.Equals("MRN", StringComparison.OrdinalIgnoreCase));
             
             return Task.FromResult(hasName && hasMrn);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating Excel file");
+            _logger.LogError(ex, "Error validating CSV file");
             return Task.FromResult(false);
         }
     }
 
-    public async Task<ImportResultDto> ImportFromExcelAsync(Stream fileStream, string fileName, string importedBy)
+    public async Task<ImportResultDto> ImportFromCsvAsync(Stream fileStream, string fileName, string importedBy)
     {
         var result = new ImportResultDto
         {
@@ -85,28 +62,41 @@ public class ImportService : IImportService
 
         try
         {
-            using var package = new ExcelPackage(fileStream);
-            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+            fileStream.Position = 0;
+            using var reader = new StreamReader(fileStream);
             
-            if (worksheet == null)
+            // Read header line
+            var headerLine = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(headerLine))
             {
-                result.Errors.Add("No worksheet found in the Excel file");
+                result.Errors.Add("CSV file is empty or has no header row");
                 return result;
             }
 
-            var headerMappings = MapHeaders(worksheet);
+            var headers = ParseCsvLine(headerLine);
+            var headerMappings = MapHeaders(headers);
             if (headerMappings.Count == 0)
             {
-                result.Errors.Add("Could not find required headers (Name and MRN) in the Excel file");
+                result.Errors.Add("Could not find required headers (Name and MRN) in the CSV file");
                 return result;
             }
 
-            result.TotalRows = worksheet.Dimension.End.Row - 1; // Exclude header row
+            // Count total rows first
+            var allLines = new List<string>();
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                    allLines.Add(line);
+            }
+
+            result.TotalRows = allLines.Count;
 
             // Process data rows
-            for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
+            for (int i = 0; i < allLines.Count; i++)
             {
-                await ProcessDataRow(worksheet, row, headerMappings, result);
+                var rowNumber = i + 2; // +2 because row 1 is header and we're 0-indexed
+                await ProcessDataRow(allLines[i], headers, headerMappings, rowNumber, result);
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -118,24 +108,66 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during Excel import");
+            _logger.LogError(ex, "Error during CSV import");
             result.Errors.Add($"Import failed: {ex.Message}");
             return result;
         }
     }
 
-    private Dictionary<string, int> MapHeaders(ExcelWorksheet worksheet)
+    private static string[] ParseCsvLine(string line)
+    {
+        var result = new List<string>();
+        var inQuotes = false;
+        var currentField = new System.Text.StringBuilder();
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    // Escaped quote
+                    currentField.Append('"');
+                    i++; // Skip next quote
+                }
+                else
+                {
+                    // Toggle quote state
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                // Field separator
+                result.Add(currentField.ToString());
+                currentField.Clear();
+            }
+            else
+            {
+                currentField.Append(c);
+            }
+        }
+
+        // Add the last field
+        result.Add(currentField.ToString());
+
+        return result.ToArray();
+    }
+
+    private Dictionary<string, int> MapHeaders(string[] headers)
     {
         var mappings = new Dictionary<string, int>();
         
-        for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+        for (int i = 0; i < headers.Length; i++)
         {
-            var header = worksheet.Cells[1, col].Text?.Trim();
+            var header = headers[i]?.Trim();
             if (!string.IsNullOrEmpty(header))
             {
                 // Map common variations
                 var normalizedHeader = NormalizeHeader(header);
-                mappings[normalizedHeader] = col;
+                mappings[normalizedHeader] = i;
             }
         }
 
@@ -147,18 +179,20 @@ public class ImportService : IImportService
         return header.ToLowerInvariant().Replace(" ", "").Replace("_", "");
     }
 
-    private async Task ProcessDataRow(ExcelWorksheet worksheet, int row, Dictionary<string, int> headerMappings, ImportResultDto result)
+    private async Task ProcessDataRow(string csvLine, string[] headers, Dictionary<string, int> headerMappings, int rowNumber, ImportResultDto result)
     {
         try
         {
+            var fields = ParseCsvLine(csvLine);
+            
             // Extract required fields
-            var mrn = GetCellValue(worksheet, row, headerMappings, "mrn");
-            var name = GetCellValue(worksheet, row, headerMappings, "name");
+            var mrn = GetCellValue(fields, headerMappings, "mrn");
+            var name = GetCellValue(fields, headerMappings, "name");
 
             if (string.IsNullOrWhiteSpace(mrn) || string.IsNullOrWhiteSpace(name))
             {
                 result.SkippedRows++;
-                result.Warnings.Add($"Row {row}: Skipped - Missing required MRN or Name");
+                result.Warnings.Add($"Row {rowNumber}: Skipped - Missing required MRN or Name");
                 return;
             }
 
@@ -167,7 +201,7 @@ public class ImportService : IImportService
             if (existingPatient != null)
             {
                 result.SkippedRows++;
-                result.Warnings.Add($"Row {row}: Skipped - Patient with MRN '{mrn}' already exists");
+                result.Warnings.Add($"Row {rowNumber}: Skipped - Patient with MRN '{mrn}' already exists");
                 return;
             }
 
@@ -183,27 +217,27 @@ public class ImportService : IImportService
             var comments = new List<string>();
 
             // Process all fields with validation
-            ProcessDateField(worksheet, row, headerMappings, "referraldate", v => patient.ReferralDate = v ?? DateTime.Today, comments);
-            ProcessDateField(worksheet, row, headerMappings, "counsellingdate", v => patient.CounsellingDate = v, comments);
+            ProcessDateField(fields, headerMappings, "referraldate", v => patient.ReferralDate = v ?? DateTime.Today, comments);
+            ProcessDateField(fields, headerMappings, "counsellingdate", v => patient.CounsellingDate = v, comments);
             
-            patient.DelayReason = GetCellValue(worksheet, row, headerMappings, "delayreason");
+            patient.DelayReason = GetCellValue(fields, headerMappings, "delayreason");
             
-            ProcessBooleanField(worksheet, row, headerMappings, "survey", v => patient.SurveyReturned = v ?? false, comments);
-            ProcessBooleanField(worksheet, row, headerMappings, "english1stlanguage", v => patient.IsEnglishFirstLanguage = v ?? true, comments);
-            ProcessBooleanField(worksheet, row, headerMappings, "adjuvant", v => patient.Adjuvant = v ?? false, comments);
-            ProcessBooleanField(worksheet, row, headerMappings, "palliative", v => patient.Palliative = v ?? false, comments);
+            ProcessBooleanField(fields, headerMappings, "survey", v => patient.SurveyReturned = v ?? false, comments);
+            ProcessBooleanField(fields, headerMappings, "english1stlanguage", v => patient.IsEnglishFirstLanguage = v ?? true, comments);
+            ProcessBooleanField(fields, headerMappings, "adjuvant", v => patient.Adjuvant = v ?? false, comments);
+            ProcessBooleanField(fields, headerMappings, "palliative", v => patient.Palliative = v ?? false, comments);
 
             // Process treatment with auto-creation
-            await ProcessTreatmentField(worksheet, row, headerMappings, patient, result, comments);
+            await ProcessTreatmentField(fields, headerMappings, patient, result, comments);
 
-            ProcessDateField(worksheet, row, headerMappings, "dispensed", v => patient.DispensedDate = v, comments);
-            ProcessDateField(worksheet, row, headerMappings, "imaging", v => patient.ImagingDate = v, comments);
-            ProcessDateField(worksheet, row, headerMappings, "results", v => patient.ResultsDate = v, comments);
-            ProcessDateField(worksheet, row, headerMappings, "nextcycledue", v => patient.NextCycleDue = v, comments);
-            ProcessDateField(worksheet, row, headerMappings, "nextappt", v => patient.NextAppointment = v, comments);
+            ProcessDateField(fields, headerMappings, "dispensed", v => patient.DispensedDate = v, comments);
+            ProcessDateField(fields, headerMappings, "imaging", v => patient.ImagingDate = v, comments);
+            ProcessDateField(fields, headerMappings, "results", v => patient.ResultsDate = v, comments);
+            ProcessDateField(fields, headerMappings, "nextcycledue", v => patient.NextCycleDue = v, comments);
+            ProcessDateField(fields, headerMappings, "nextappt", v => patient.NextAppointment = v, comments);
 
             // Combine existing comments with validation comments
-            var existingComments = GetCellValue(worksheet, row, headerMappings, "comments");
+            var existingComments = GetCellValue(fields, headerMappings, "comments");
             var allComments = new List<string>();
             if (!string.IsNullOrWhiteSpace(existingComments))
                 allComments.Add(existingComments);
@@ -217,24 +251,24 @@ public class ImportService : IImportService
         catch (Exception ex)
         {
             result.SkippedRows++;
-            result.Errors.Add($"Row {row}: Error processing - {ex.Message}");
-            _logger.LogError(ex, "Error processing row {Row}", row);
+            result.Errors.Add($"Row {rowNumber}: Error processing - {ex.Message}");
+            _logger.LogError(ex, "Error processing row {Row}", rowNumber);
         }
     }
 
-    private string? GetCellValue(ExcelWorksheet worksheet, int row, Dictionary<string, int> headerMappings, string headerKey)
+    private string? GetCellValue(string[] fields, Dictionary<string, int> headerMappings, string headerKey)
     {
-        if (headerMappings.TryGetValue(headerKey, out int col))
+        if (headerMappings.TryGetValue(headerKey, out int col) && col < fields.Length)
         {
-            return worksheet.Cells[row, col].Text?.Trim();
+            return fields[col]?.Trim();
         }
         return null;
     }
 
-    private void ProcessDateField(ExcelWorksheet worksheet, int row, Dictionary<string, int> headerMappings, 
+    private void ProcessDateField(string[] fields, Dictionary<string, int> headerMappings, 
         string headerKey, Action<DateTime?> setter, List<string> comments)
     {
-        var value = GetCellValue(worksheet, row, headerMappings, headerKey);
+        var value = GetCellValue(fields, headerMappings, headerKey);
         if (string.IsNullOrWhiteSpace(value))
         {
             setter(null);
@@ -252,10 +286,10 @@ public class ImportService : IImportService
         }
     }
 
-    private void ProcessBooleanField(ExcelWorksheet worksheet, int row, Dictionary<string, int> headerMappings,
+    private void ProcessBooleanField(string[] fields, Dictionary<string, int> headerMappings,
         string headerKey, Action<bool?> setter, List<string> comments)
     {
-        var value = GetCellValue(worksheet, row, headerMappings, headerKey);
+        var value = GetCellValue(fields, headerMappings, headerKey);
         if (string.IsNullOrWhiteSpace(value))
         {
             setter(null);
@@ -278,10 +312,10 @@ public class ImportService : IImportService
         }
     }
 
-    private async Task ProcessTreatmentField(ExcelWorksheet worksheet, int row, Dictionary<string, int> headerMappings,
+    private async Task ProcessTreatmentField(string[] fields, Dictionary<string, int> headerMappings,
         PatientTracking patient, ImportResultDto result, List<string> comments)
     {
-        var treatmentName = GetCellValue(worksheet, row, headerMappings, "treatment");
+        var treatmentName = GetCellValue(fields, headerMappings, "treatment");
         if (string.IsNullOrWhiteSpace(treatmentName))
             return;
 

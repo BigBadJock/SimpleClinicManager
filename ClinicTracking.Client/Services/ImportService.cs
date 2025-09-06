@@ -6,8 +6,8 @@ namespace ClinicTracking.Client.Services;
 
 public interface IImportService
 {
-    Task<ImportResultDto?> ImportFromExcelAsync(IBrowserFile file);
-    Task<bool> ValidateExcelFileAsync(IBrowserFile file);
+    Task<ImportResultDto?> ImportFromCsvAsync(IBrowserFile file);
+    Task<bool> ValidateCsvFileAsync(IBrowserFile file);
 }
 
 public class ImportService : IImportService
@@ -21,14 +21,14 @@ public class ImportService : IImportService
         _logger = logger;
     }
 
-    public async Task<bool> ValidateExcelFileAsync(IBrowserFile file)
+    public async Task<bool> ValidateCsvFileAsync(IBrowserFile file)
     {
         try
         {
             using var content = new MultipartFormDataContent();
             using var fileStream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50MB max
             using var fileContent = new StreamContent(fileStream);
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
             content.Add(fileContent, "file", file.Name);
 
             var response = await _httpClient.PostAsync("api/import/validate", content);
@@ -42,22 +42,22 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating Excel file");
+            _logger.LogError(ex, "Error validating CSV file");
             return false;
         }
     }
 
-    public async Task<ImportResultDto?> ImportFromExcelAsync(IBrowserFile file)
+    public async Task<ImportResultDto?> ImportFromCsvAsync(IBrowserFile file)
     {
         try
         {
             using var content = new MultipartFormDataContent();
             using var fileStream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50MB max
             using var fileContent = new StreamContent(fileStream);
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
             content.Add(fileContent, "file", file.Name);
 
-            var response = await _httpClient.PostAsync("api/import/excel", content);
+            var response = await _httpClient.PostAsync("api/import/csv", content);
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<ImportResultDto>();
@@ -78,7 +78,7 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error importing Excel file");
+            _logger.LogError(ex, "Error importing CSV file");
             return null;
         }
     }
