@@ -1,4 +1,5 @@
 using ClinicTracking.API.DTOs;
+using ClinicTracking.API.Services;
 using ClinicTracking.Core.Entities;
 using ClinicTracking.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -13,11 +14,13 @@ public class PatientsController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<PatientsController> _logger;
+    private readonly IExportService _exportService;
 
-    public PatientsController(IUnitOfWork unitOfWork, ILogger<PatientsController> logger)
+    public PatientsController(IUnitOfWork unitOfWork, ILogger<PatientsController> logger, IExportService exportService)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _exportService = exportService;
     }
 
     [HttpGet]
@@ -136,6 +139,42 @@ public class PatientsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching patients with term: {SearchTerm}", searchTerm);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpGet("export/csv")]
+    public async Task<IActionResult> ExportCsv([FromQuery] string? filter = null, [FromQuery] string? searchTerm = null)
+    {
+        try
+        {
+            var patients = await GetPatientsForExport(filter, searchTerm);
+            var csvData = _exportService.ExportToCsv(patients);
+            
+            var fileName = $"patients_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            return File(csvData, "text/csv", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting patients to CSV with filter: {Filter}, searchTerm: {SearchTerm}", filter, searchTerm);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpGet("export/excel")]
+    public async Task<IActionResult> ExportExcel([FromQuery] string? filter = null, [FromQuery] string? searchTerm = null)
+    {
+        try
+        {
+            var patients = await GetPatientsForExport(filter, searchTerm);
+            var excelData = _exportService.ExportToExcel(patients);
+            
+            var fileName = $"patients_export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            return File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting patients to Excel with filter: {Filter}, searchTerm: {SearchTerm}", filter, searchTerm);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -320,5 +359,31 @@ public class PatientsController : ControllerBase
     {
         // For now, return a default user. In real implementation, this would come from JWT token
         return User?.Identity?.Name ?? "system";
+    }
+
+    private async Task<IEnumerable<PatientTrackingDto>> GetPatientsForExport(string? filter, string? searchTerm)
+    {
+        IEnumerable<PatientTracking> patients;
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            patients = await _unitOfWork.Patients.SearchAsync(searchTerm);
+        }
+        else if (!string.IsNullOrEmpty(filter))
+        {
+            patients = filter.ToLower() switch
+            {
+                "awaiting-counselling" => await _unitOfWork.Patients.GetAwaitingCounsellingAsync(),
+                "awaiting-treatment" => await _unitOfWork.Patients.GetAwaitingTreatmentAsync(),
+                "follow-up-due" => await _unitOfWork.Patients.GetFollowUpDueAsync(),
+                _ => await _unitOfWork.Patients.GetAllAsync()
+            };
+        }
+        else
+        {
+            patients = await _unitOfWork.Patients.GetAllAsync();
+        }
+
+        return patients.Select(MapToDto);
     }
 }

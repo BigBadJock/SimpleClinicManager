@@ -1,8 +1,10 @@
 ﻿@page "/"
 @using ClinicTracking.Client.DTOs
 @using ClinicTracking.Client.Services
+@using Microsoft.JSInterop
 @inject IPatientService PatientService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Clinic Tracking - Dashboard</PageTitle>
 
@@ -56,7 +58,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-5">
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search by patient name or MRN..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
                 <button class="btn btn-primary" @onclick="SearchPatients">
@@ -64,10 +66,25 @@
                 </button>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <button class="btn btn-outline-secondary w-100" @onclick="ClearFilter" title="Clear all filters and sorting">
                 <i class="fas fa-times-circle me-2"></i>Clear Filters
             </button>
+        </div>
+        <div class="col-md-2">
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="#" @onclick="ExportToCsv" @onclick:preventDefault="true">
+                        <i class="fas fa-file-csv me-2"></i>Export to CSV
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" @onclick="ExportToExcel" @onclick:preventDefault="true">
+                        <i class="fas fa-file-excel me-2"></i>Export to Excel
+                    </a></li>
+                </ul>
+            </div>
         </div>
         <div class="col-md-3 text-end">
             <button class="btn btn-success" @onclick="AddNewPatient">
@@ -469,5 +486,57 @@
     private void EditPatient(Guid id)
     {
         Navigation.NavigateTo($"/edit-patient/{id}");
+    }
+
+    private async Task ExportToCsv()
+    {
+        try
+        {
+            var filter = GetCurrentFilter();
+            var searchTermForExport = string.IsNullOrEmpty(searchTerm) ? null : searchTerm;
+            
+            var csvData = await PatientService.ExportToCsvAsync(filter, searchTermForExport);
+            await DownloadFile(csvData, $"patients_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "text/csv");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exporting to CSV: {ex.Message}");
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            var filter = GetCurrentFilter();
+            var searchTermForExport = string.IsNullOrEmpty(searchTerm) ? null : searchTerm;
+            
+            var excelData = await PatientService.ExportToExcelAsync(filter, searchTermForExport);
+            await DownloadFile(excelData, $"patients_export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exporting to Excel: {ex.Message}");
+        }
+    }
+
+    private string? GetCurrentFilter()
+    {
+        if (currentFilter.Contains("Awaiting Counselling"))
+            return "awaiting-counselling";
+        else if (currentFilter.Contains("Awaiting Treatment"))
+            return "awaiting-treatment";
+        else if (currentFilter.Contains("Follow-up Due"))
+            return "follow-up-due";
+        
+        return null;
+    }
+
+    private async Task DownloadFile(byte[] fileContent, string fileName, string contentType)
+    {
+        var fileStream = new MemoryStream(fileContent);
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+        
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }

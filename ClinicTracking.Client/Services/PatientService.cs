@@ -15,6 +15,8 @@ public interface IPatientService
     Task<PatientTrackingDto?> CreatePatientAsync(CreatePatientTrackingDto patient);
     Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, UpdatePatientTrackingDto patient);
     Task<bool> DeletePatientAsync(Guid id);
+    Task<byte[]> ExportToCsvAsync(string? filter = null, string? searchTerm = null);
+    Task<byte[]> ExportToExcelAsync(string? filter = null, string? searchTerm = null);
 }
 
 public class PatientService : IPatientService
@@ -90,5 +92,33 @@ public class PatientService : IPatientService
     {
         var response = await _httpClient.DeleteAsync($"api/patients/{id}");
         return response.IsSuccessStatusCode;
+    }
+
+    public async Task<byte[]> ExportToCsvAsync(string? filter = null, string? searchTerm = null)
+    {
+        var queryParams = new List<string>();
+        if (!string.IsNullOrEmpty(filter))
+            queryParams.Add($"filter={Uri.EscapeDataString(filter)}");
+        if (!string.IsNullOrEmpty(searchTerm))
+            queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
+        
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var response = await _httpClient.GetAsync($"api/patients/export/csv{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public async Task<byte[]> ExportToExcelAsync(string? filter = null, string? searchTerm = null)
+    {
+        var queryParams = new List<string>();
+        if (!string.IsNullOrEmpty(filter))
+            queryParams.Add($"filter={Uri.EscapeDataString(filter)}");
+        if (!string.IsNullOrEmpty(searchTerm))
+            queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
+        
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var response = await _httpClient.GetAsync($"api/patients/export/excel{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
     }
 }
