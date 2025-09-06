@@ -1,0 +1,392 @@
+@page "/statistics"
+@using ClinicTracking.Client.DTOs
+@using ClinicTracking.Client.Services
+@using ClinicTracking.Client.Components.Common
+@inject IPatientService PatientService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Clinic Statistics Dashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-chart-bar me-2"></i>
+                Clinic Statistics Dashboard
+            </h1>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        Filters
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <InputDateNullable @bind-Value="startDate" class="form-control" id="startDate" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <InputDateNullable @bind-Value="endDate" class="form-control" id="endDate" />
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary me-2" @onclick="ApplyFilter" disabled="@loading">
+                                <i class="fas fa-search me-1"></i>
+                                Apply Filter
+                            </button>
+                            <button class="btn btn-secondary" @onclick="ClearFilter" disabled="@loading">
+                                <i class="fas fa-times me-1"></i>
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                    @if (filterValidationMessage != null)
+                    {
+                        <div class="alert alert-warning mt-2">
+                            @filterValidationMessage
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading statistics...</p>
+        </div>
+    }
+    else if (statistics != null)
+    {
+        <!-- Summary Metrics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@statistics.SummaryMetrics.TotalPatients</h3>
+                        <p class="card-text">Total Patients</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@FormatDays(statistics.SummaryMetrics.AverageWaitTime)</h3>
+                        <p class="card-text">Avg Wait Time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@FormatDays(statistics.SummaryMetrics.MedianWaitTime)</h3>
+                        <p class="card-text">Median Wait Time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@FormatMinMax(statistics.SummaryMetrics.MinWaitTime, statistics.SummaryMetrics.MaxWaitTime)</h3>
+                        <p class="card-text">Min/Max Wait Time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@FormatDays(statistics.SummaryMetrics.AverageTreatmentTime)</h3>
+                        <p class="card-text">Avg Treatment Time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">@statistics.SummaryMetrics.SurveyCompletionRate.ToString("F1")%</h3>
+                        <p class="card-text">Survey Completion</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Distributions -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Wait Time Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="waitTimeChart" width="400" height="200"></canvas>
+                        <div id="waitTimeChartFallback" class="text-center text-muted" style="display: none;">
+                            <p><i class="fas fa-chart-bar fa-3x mb-2"></i></p>
+                            <p>Chart visualization requires Chart.js library to be loaded</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Treatment Time Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="treatmentTimeChart" width="400" height="200"></canvas>
+                        <div id="treatmentTimeChartFallback" class="text-center text-muted" style="display: none;">
+                            <p><i class="fas fa-chart-bar fa-3x mb-2"></i></p>
+                            <p>Chart visualization requires Chart.js library to be loaded</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treatment Types -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Treatment Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Treatment Name</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var treatment in statistics.TreatmentTypes)
+                                    {
+                                        <tr>
+                                            <td>@treatment.TreatmentName</td>
+                                            <td>@treatment.PatientCount</td>
+                                            <td>@treatment.Percentage.ToString("F1")%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Treatment Types Chart</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="treatmentTypesChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Counsellor Metrics and Demographics -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Counsellor Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="counsellorChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Patient Demographics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <canvas id="languageChart" width="200" height="200"></canvas>
+                            </div>
+                            <div class="col-6">
+                                <canvas id="surveyChart" width="200" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational Metrics and Trends -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Referral Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trendsChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Operational Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="card bg-warning text-dark">
+                                    <div class="card-body text-center">
+                                        <h4>@statistics.OperationalMetrics.AwaitingCounsellingCount</h4>
+                                        <p class="mb-0">Awaiting Counselling</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h4>@statistics.OperationalMetrics.AwaitingTreatmentCount</h4>
+                                        <p class="mb-0">Awaiting Treatment</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="nextAppointmentChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            @errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private StatisticsDto? statistics;
+    private bool loading = true;
+    private string? errorMessage;
+    private string? filterValidationMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatistics();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && statistics != null)
+        {
+            await RenderCharts();
+        }
+        else if (statistics != null)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task LoadStatistics()
+    {
+        loading = true;
+        errorMessage = null;
+        
+        try
+        {
+            var filter = new StatisticsFilterDto
+            {
+                StartDate = startDate,
+                EndDate = endDate
+            };
+            
+            statistics = await PatientService.GetStatisticsAsync(filter);
+            
+            if (statistics == null)
+            {
+                errorMessage = "Failed to load statistics data.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading statistics: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ApplyFilter()
+    {
+        filterValidationMessage = null;
+        
+        if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
+        {
+            filterValidationMessage = "Start date must be before or equal to end date.";
+            return;
+        }
+        
+        await LoadStatistics();
+        if (statistics != null)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task ClearFilter()
+    {
+        startDate = null;
+        endDate = null;
+        filterValidationMessage = null;
+        await LoadStatistics();
+        if (statistics != null)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private string FormatDays(double? days)
+    {
+        return days.HasValue ? $"{days.Value:F1} days" : "N/A";
+    }
+
+    private string FormatMinMax(int? min, int? max)
+    {
+        if (min.HasValue && max.HasValue)
+            return $"{min}/{max} days";
+        return "N/A";
+    }
+
+    private async Task RenderCharts()
+    {
+        if (statistics == null) return;
+
+        await JSRuntime.InvokeVoidAsync("renderWaitTimeChart", statistics.WaitTimeDistribution);
+        await JSRuntime.InvokeVoidAsync("renderTreatmentTimeChart", statistics.TreatmentTimeDistribution);
+        await JSRuntime.InvokeVoidAsync("renderTreatmentTypesChart", statistics.TreatmentTypes);
+        await JSRuntime.InvokeVoidAsync("renderCounsellorChart", statistics.CounsellorMetrics);
+        await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics);
+        await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics);
+        await JSRuntime.InvokeVoidAsync("renderTrendsChart", statistics.ReferralTrends);
+        await JSRuntime.InvokeVoidAsync("renderNextAppointmentChart", statistics.OperationalMetrics.NextAppointmentDistribution);
+    }
+}

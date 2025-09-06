@@ -143,6 +143,7 @@ public class PatientsController : ControllerBase
         }
     }
 
+
     [HttpGet("export/csv")]
     public async Task<IActionResult> ExportCsv([FromQuery] string? filter = null, [FromQuery] string? searchTerm = null)
     {
@@ -178,6 +179,37 @@ public class PatientsController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+[HttpPost("statistics")]
+    public async Task<ActionResult<StatisticsDto>> GetStatistics([FromBody] StatisticsFilterDto filter)
+    {
+        try
+        {
+            var allPatients = await _unitOfWork.Patients.GetAllAsync();
+            
+            // Apply date filtering
+            var filteredPatients = allPatients.AsQueryable();
+            if (filter.StartDate.HasValue)
+            {
+                filteredPatients = filteredPatients.Where(p => p.ReferralDate >= filter.StartDate.Value);
+            }
+            if (filter.EndDate.HasValue)
+            {
+                filteredPatients = filteredPatients.Where(p => p.ReferralDate <= filter.EndDate.Value);
+            }
+
+            var patientsList = filteredPatients.ToList();
+
+            var statistics = CalculateStatistics(patientsList);
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating statistics");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
 
     [HttpPost]
     public async Task<ActionResult<PatientTrackingDto>> Create([FromBody] CreatePatientTrackingDto createDto)
@@ -361,6 +393,7 @@ public class PatientsController : ControllerBase
         return User?.Identity?.Name ?? "system";
     }
 
+
     private async Task<IEnumerable<PatientTrackingDto>> GetPatientsForExport(string? filter, string? searchTerm)
     {
         IEnumerable<PatientTracking> patients;
@@ -385,5 +418,245 @@ public class PatientsController : ControllerBase
         }
 
         return patients.Select(MapToDto);
+ }
+
+       
+
+    private StatisticsDto CalculateStatistics(List<PatientTracking> patients)
+    {
+        var statistics = new StatisticsDto();
+
+        // Summary Metrics
+        statistics.SummaryMetrics = CalculateSummaryMetrics(patients);
+
+        // Time Distributions
+        statistics.WaitTimeDistribution = CalculateWaitTimeDistribution(patients);
+        statistics.TreatmentTimeDistribution = CalculateTreatmentTimeDistribution(patients);
+
+        // Treatment Types
+        statistics.TreatmentTypes = CalculateTreatmentTypes(patients);
+
+        // Counsellor Metrics (simplified - using CreatedBy as proxy for counsellor)
+        statistics.CounsellorMetrics = CalculateCounsellorMetrics(patients);
+
+        // Demographics
+        statistics.Demographics = CalculateDemographics(patients);
+
+        // Operational Metrics
+        statistics.OperationalMetrics = CalculateOperationalMetrics(patients);
+
+        // Referral Trends
+        statistics.ReferralTrends = CalculateReferralTrends(patients);
+
+        return statistics;
+    }
+
+    private SummaryMetricsDto CalculateSummaryMetrics(List<PatientTracking> patients)
+    {
+        var waitTimes = patients.Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                               .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                               .ToList();
+
+        var treatmentTimes = patients.Where(p => p.TreatTime.HasValue)
+                                   .Select(p => p.TreatTime!.Value)
+                                   .ToList();
+
+        var targetDays = 5;
+        var withinTarget = waitTimes.Count(wt => wt <= targetDays);
+
+        return new SummaryMetricsDto
+        {
+            TotalPatients = patients.Count,
+            AverageWaitTime = waitTimes.Any() ? waitTimes.Average() : null,
+            MedianWaitTime = waitTimes.Any() ? CalculateMedian(waitTimes) : null,
+            MaxWaitTime = waitTimes.Any() ? waitTimes.Max() : null,
+            MinWaitTime = waitTimes.Any() ? waitTimes.Min() : null,
+            AverageTreatmentTime = treatmentTimes.Any() ? treatmentTimes.Average() : null,
+            MedianTreatmentTime = treatmentTimes.Any() ? CalculateMedian(treatmentTimes) : null,
+            MaxTreatmentTime = treatmentTimes.Any() ? treatmentTimes.Max() : null,
+            MinTreatmentTime = treatmentTimes.Any() ? treatmentTimes.Min() : null,
+            SurveyCompletionRate = patients.Count > 0 ? (double)patients.Count(p => p.SurveyReturned) / patients.Count * 100 : 0,
+            PatientsSeenWithinTargetTime = waitTimes.Count > 0 ? (double)withinTarget / waitTimes.Count * 100 : 0,
+            TargetDays = targetDays
+        };
+    }
+
+    private double CalculateMedian(List<int> values)
+    {
+        var sorted = values.OrderBy(x => x).ToList();
+        var count = sorted.Count;
+        if (count % 2 == 0)
+        {
+            return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
+        }
+        return sorted[count / 2];
+    }
+
+    private List<TimeDistributionDto> CalculateWaitTimeDistribution(List<PatientTracking> patients)
+    {
+        var waitTimes = patients.Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                               .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                               .ToList();
+
+        return CalculateTimeDistribution(waitTimes);
+    }
+
+    private List<TimeDistributionDto> CalculateTreatmentTimeDistribution(List<PatientTracking> patients)
+    {
+        var treatmentTimes = patients.Where(p => p.TreatTime.HasValue)
+                                   .Select(p => p.TreatTime!.Value)
+                                   .ToList();
+
+        return CalculateTimeDistribution(treatmentTimes);
+    }
+
+    private List<TimeDistributionDto> CalculateTimeDistribution(List<int> times)
+    {
+        var ranges = new List<TimeDistributionDto>
+        {
+            new() { Range = "0-5 days", MinDays = 0, MaxDays = 5, Count = 0 },
+            new() { Range = "6-10 days", MinDays = 6, MaxDays = 10, Count = 0 },
+            new() { Range = "11-15 days", MinDays = 11, MaxDays = 15, Count = 0 },
+            new() { Range = "16-20 days", MinDays = 16, MaxDays = 20, Count = 0 },
+            new() { Range = "21-30 days", MinDays = 21, MaxDays = 30, Count = 0 },
+            new() { Range = "31+ days", MinDays = 31, MaxDays = int.MaxValue, Count = 0 }
+        };
+
+        foreach (var time in times)
+        {
+            var range = ranges.FirstOrDefault(r => time >= r.MinDays && time <= r.MaxDays);
+            if (range != null)
+            {
+                range.Count++;
+            }
+        }
+
+        return ranges;
+    }
+
+    private List<TreatmentTypeDto> CalculateTreatmentTypes(List<PatientTracking> patients)
+    {
+        var patientsWithTreatment = patients.Where(p => !string.IsNullOrEmpty(p.Treatment)).ToList();
+        var totalCount = patientsWithTreatment.Count;
+
+        var treatmentGroups = patientsWithTreatment
+            .GroupBy(p => p.Treatment!)
+            .Select(g => new TreatmentTypeDto
+            {
+                TreatmentName = g.Key,
+                PatientCount = g.Count(),
+                Percentage = totalCount > 0 ? (double)g.Count() / totalCount * 100 : 0
+            })
+            .OrderByDescending(t => t.PatientCount)
+            .ToList();
+
+        return treatmentGroups;
+    }
+
+    private List<CounsellorMetricDto> CalculateCounsellorMetrics(List<PatientTracking> patients)
+    {
+        var counsellorGroups = patients
+            .Where(p => p.CounsellingDate.HasValue && !string.IsNullOrEmpty(p.CreatedBy))
+            .GroupBy(p => p.CreatedBy)
+            .Select(g => new CounsellorMetricDto
+            {
+                CounsellorName = g.Key,
+                PatientCount = g.Count(),
+                AverageWaitTime = g.Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                                 .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                                 .Any()
+                                 ? g.Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                                   .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                                   .Average()
+                                 : (double?)null
+            })
+            .OrderByDescending(c => c.PatientCount)
+            .ToList();
+
+        return counsellorGroups;
+    }
+
+    private DemographicsDto CalculateDemographics(List<PatientTracking> patients)
+    {
+        var englishCount = patients.Count(p => p.IsEnglishFirstLanguage);
+        var otherCount = patients.Count - englishCount;
+        var surveyReturnedCount = patients.Count(p => p.SurveyReturned);
+        var surveyNotReturnedCount = patients.Count - surveyReturnedCount;
+
+        return new DemographicsDto
+        {
+            EnglishFirstLanguageCount = englishCount,
+            OtherLanguageCount = otherCount,
+            EnglishFirstLanguagePercentage = patients.Count > 0 ? (double)englishCount / patients.Count * 100 : 0,
+            OtherLanguagePercentage = patients.Count > 0 ? (double)otherCount / patients.Count * 100 : 0,
+            SurveyReturnedCount = surveyReturnedCount,
+            SurveyNotReturnedCount = surveyNotReturnedCount,
+            SurveyReturnedPercentage = patients.Count > 0 ? (double)surveyReturnedCount / patients.Count * 100 : 0
+        };
+    }
+
+    private OperationalMetricsDto CalculateOperationalMetrics(List<PatientTracking> patients)
+    {
+        var awaitingCounselling = patients.Count(p => !p.CounsellingDate.HasValue);
+        var awaitingTreatment = patients.Count(p => p.CounsellingDate.HasValue && !p.DispensedDate.HasValue);
+
+        var nextAppointmentDistribution = CalculateNextAppointmentDistribution(patients);
+
+        return new OperationalMetricsDto
+        {
+            AwaitingCounsellingCount = awaitingCounselling,
+            AwaitingTreatmentCount = awaitingTreatment,
+            NextAppointmentDistribution = nextAppointmentDistribution
+        };
+    }
+
+    private List<NextAppointmentDistributionDto> CalculateNextAppointmentDistribution(List<PatientTracking> patients)
+    {
+        var today = DateTime.Today;
+        var patientsWithNextAppt = patients.Where(p => p.NextAppointment.HasValue).ToList();
+
+        var ranges = new List<NextAppointmentDistributionDto>
+        {
+            new() { DaysRange = "Overdue", Count = 0 },
+            new() { DaysRange = "Today", Count = 0 },
+            new() { DaysRange = "1-7 days", Count = 0 },
+            new() { DaysRange = "8-14 days", Count = 0 },
+            new() { DaysRange = "15-30 days", Count = 0 },
+            new() { DaysRange = "31+ days", Count = 0 }
+        };
+
+        foreach (var patient in patientsWithNextAppt)
+        {
+            var daysFromToday = (patient.NextAppointment!.Value.Date - today).Days;
+
+            if (daysFromToday < 0)
+                ranges[0].Count++; // Overdue
+            else if (daysFromToday == 0)
+                ranges[1].Count++; // Today
+            else if (daysFromToday <= 7)
+                ranges[2].Count++; // 1-7 days
+            else if (daysFromToday <= 14)
+                ranges[3].Count++; // 8-14 days
+            else if (daysFromToday <= 30)
+                ranges[4].Count++; // 15-30 days
+            else
+                ranges[5].Count++; // 31+ days
+        }
+
+        return ranges;
+    }
+
+    private List<TrendDataDto> CalculateReferralTrends(List<PatientTracking> patients)
+    {
+        return patients
+            .GroupBy(p => new { Year = p.ReferralDate.Year, Month = p.ReferralDate.Month })
+            .Select(g => new TrendDataDto
+            {
+                Period = $"{g.Key.Year:0000}-{g.Key.Month:00}",
+                Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                Count = g.Count()
+            })
+            .OrderBy(t => t.Date)
+            .ToList();
     }
 }

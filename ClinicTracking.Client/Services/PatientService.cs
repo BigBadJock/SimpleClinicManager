@@ -17,6 +17,7 @@ public interface IPatientService
     Task<bool> DeletePatientAsync(Guid id);
     Task<byte[]> ExportToCsvAsync(string? filter = null, string? searchTerm = null);
     Task<byte[]> ExportToExcelAsync(string? filter = null, string? searchTerm = null);
+    Task<StatisticsDto?> GetStatisticsAsync(StatisticsFilterDto filter);
 }
 
 public class PatientService : IPatientService
@@ -120,5 +121,15 @@ public class PatientService : IPatientService
         var response = await _httpClient.GetAsync($"api/patients/export/excel{queryString}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync();
+
+    public async Task<StatisticsDto?> GetStatisticsAsync(StatisticsFilterDto filter)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/patients/statistics", filter);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<StatisticsDto>();
+        }
+        return null;
+
     }
 }
