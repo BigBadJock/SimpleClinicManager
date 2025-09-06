@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="ClinicTracking.Client.styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="print.css" media="print" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <HeadOutlet />
@@ -46,6 +47,14 @@
             anchorElement.click();
             anchorElement.remove();
             URL.revokeObjectURL(url);
+        };
+
+        // Print helper function
+        window.printPage = function() {
+            // Ensure charts are fully rendered before printing
+            setTimeout(() => {
+                window.print();
+            }, 500);
         };
     </script>
 

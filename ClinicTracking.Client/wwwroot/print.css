@@ -1,0 +1,224 @@
+/* Print-specific styles for Statistics page */
+@media print {
+    /* Hide elements not needed in print */
+    .sidebar,
+    .top-row,
+    .btn-print-exclude,
+    .card-header,
+    .no-print,
+    nav,
+    .navbar,
+    .breadcrumb {
+        display: none !important;
+    }
+
+    /* Print-friendly page layout */
+    body {
+        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        font-size: 12pt !important;
+        line-height: 1.4 !important;
+        color: black !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .page {
+        display: block !important;
+        flex-direction: column !important;
+    }
+
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .content {
+        padding: 20px !important;
+        margin: 0 !important;
+    }
+
+    .container-fluid {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Print header */
+    .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 10px;
+    }
+
+    .print-header h1 {
+        font-size: 20pt !important;
+        font-weight: bold !important;
+        margin: 0 !important;
+        color: black !important;
+    }
+
+    .print-header .clinic-name {
+        font-size: 24pt !important;
+        font-weight: bold !important;
+        margin-bottom: 5px !important;
+    }
+
+    .print-header .report-date {
+        font-size: 10pt !important;
+        color: #666 !important;
+        margin-top: 5px !important;
+    }
+
+    /* Applied filters section */
+    .print-filters {
+        display: block !important;
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+        page-break-inside: avoid;
+    }
+
+    .print-filters h3 {
+        font-size: 14pt !important;
+        margin: 0 0 10px 0 !important;
+        color: black !important;
+    }
+
+    .print-filters p {
+        font-size: 11pt !important;
+        margin: 5px 0 !important;
+        color: black !important;
+    }
+
+    /* Statistics cards - make them print-friendly */
+    .card {
+        border: 1px solid #ddd !important;
+        margin-bottom: 15px !important;
+        page-break-inside: avoid;
+        background: white !important;
+        box-shadow: none !important;
+    }
+
+    .card-body {
+        padding: 15px !important;
+        color: black !important;
+        background: white !important;
+    }
+
+    .card.bg-primary,
+    .card.bg-info,
+    .card.bg-warning,
+    .card.bg-success,
+    .card.bg-secondary {
+        background: white !important;
+        color: black !important;
+        border: 2px solid #333 !important;
+    }
+
+    .card-title {
+        font-size: 18pt !important;
+        font-weight: bold !important;
+        color: black !important;
+    }
+
+    .card-text {
+        font-size: 11pt !important;
+        color: black !important;
+    }
+
+    /* Chart containers */
+    .chart-container,
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+    }
+
+    /* Tables */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 20px !important;
+        page-break-inside: avoid;
+    }
+
+    table th,
+    table td {
+        border: 1px solid #333 !important;
+        padding: 8px !important;
+        text-align: left !important;
+        font-size: 10pt !important;
+        color: black !important;
+    }
+
+    table th {
+        background-color: #f0f0f0 !important;
+        font-weight: bold !important;
+    }
+
+    /* Row layout adjustments */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        margin: 0 !important;
+    }
+
+    .col-md-2,
+    .col-md-3,
+    .col-md-4,
+    .col-md-6,
+    .col-md-8,
+    .col-md-12 {
+        flex: 0 0 auto !important;
+        padding: 5px !important;
+    }
+
+    .col-md-2 { width: 16.666667% !important; }
+    .col-md-3 { width: 25% !important; }
+    .col-md-4 { width: 33.333333% !important; }
+    .col-md-6 { width: 50% !important; }
+    .col-md-8 { width: 66.666667% !important; }
+    .col-md-12 { width: 100% !important; }
+
+    /* Page breaks */
+    .page-break {
+        page-break-before: always;
+    }
+
+    .avoid-break {
+        page-break-inside: avoid;
+    }
+
+    /* Typography adjustments */
+    h1, h2, h3, h4, h5, h6 {
+        color: black !important;
+        font-weight: bold !important;
+    }
+
+    h1 { font-size: 18pt !important; }
+    h2 { font-size: 16pt !important; }
+    h3 { font-size: 14pt !important; }
+    h4 { font-size: 12pt !important; }
+    h5 { font-size: 11pt !important; }
+
+    /* Remove Bootstrap colors and shadows */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Ensure icons are readable */
+    .fas, .far, .fab {
+        color: black !important;
+    }
+
+    /* Loading and error states */
+    .spinner-border,
+    .alert {
+        display: none !important;
+    }
+}
