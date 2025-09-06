@@ -5,17 +5,34 @@ using System.Globalization;
 
 namespace ClinicTracking.API.Services;
 
+/// <summary>
+/// Handles validation and import of patient tracking data from a CSV file.
+/// Responsibilities:
+///  - Basic header validation (checks for MRN & Name)
+///  - Row parsing with tolerant CSV handling (quotes, embedded commas)
+///  - Data mapping & normalization (dates, booleans, treatments)
+///  - Automatic creation of missing Treatment records (flagged as IsAutoAdded)
+///  - Collects rich result details (successes, skips, new treatments, warnings, errors)
+/// </summary>
 public class ImportService : IImportService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ImportService> _logger;
 
-    // Expected CSV headers
-    private readonly string[] _expectedHeaders = new[]
+    private static readonly string[] DateFormats =
     {
-        "Referral date", "Counselling date", "Delay Reason", "Survey", "Wait time from ref",
-        "english 1st language", "Name", "MRn", "Treatment", "Adjuvant", "Palliative",
-        "Dispensed", "Treat Time", "Imaging", "Results", "Next cycle due", "Next appt", "comments"
+        "dd/MM/yyyy","d/M/yyyy","dd/M/yyyy","d/MM/yyyy",
+        "dd/MM/yy","d/M/yy",
+        "yyyy-MM-dd",
+        "dd-MM-yyyy","d-M-yyyy",
+        "dd.MM.yyyy","d.M.yyyy"
+    };
+
+    private readonly string[] _expectedHeaders =
+    {
+        "Referral date","Counselling date","Delay Reason","Survey","Wait time from ref",
+        "english 1st language","Name","MRn","Treatment","Adjuvant","Palliative",
+        "Dispensed","Treat Time","Imaging","Results","Next cycle due","Next appt","comments"
     };
 
     public ImportService(IUnitOfWork unitOfWork, ILogger<ImportService> logger)
@@ -30,19 +47,16 @@ public class ImportService : IImportService
         {
             fileStream.Position = 0;
             using var reader = new StreamReader(fileStream);
-            
-            // Read first line to get headers
+
             var headerLine = reader.ReadLine();
             if (string.IsNullOrWhiteSpace(headerLine))
                 return Task.FromResult(false);
 
             var headers = ParseCsvLine(headerLine);
-            
-            // Check if we have at least the mandatory headers (Name and MRN)
             var hasName = headers.Any(h => h.Equals("Name", StringComparison.OrdinalIgnoreCase));
-            var hasMrn = headers.Any(h => h.Equals("MRn", StringComparison.OrdinalIgnoreCase) || 
-                                         h.Equals("MRN", StringComparison.OrdinalIgnoreCase));
-            
+            var hasMrn = headers.Any(h => h.Equals("MRn", StringComparison.OrdinalIgnoreCase) ||
+                                          h.Equals("MRN", StringComparison.OrdinalIgnoreCase));
+
             return Task.FromResult(hasName && hasMrn);
         }
         catch (Exception ex)
@@ -64,8 +78,7 @@ public class ImportService : IImportService
         {
             fileStream.Position = 0;
             using var reader = new StreamReader(fileStream);
-            
-            // Read header line
+
             var headerLine = reader.ReadLine();
             if (string.IsNullOrWhiteSpace(headerLine))
             {
@@ -81,7 +94,15 @@ public class ImportService : IImportService
                 return result;
             }
 
-            // Count total rows first
+            // Pre-load treatments into cache (normalized name -> Id)
+            var existingTreatments = await _unitOfWork.Treatments.GetAllAsync();
+            var treatmentCache = existingTreatments
+                .GroupBy(t => t.Name.ToUpperInvariant())
+                .ToDictionary(g => g.Key, g => g.First().Id);
+
+            // Track MRNs successfully queued in THIS import to avoid duplicates in the same file
+            var processedMrns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             var allLines = new List<string>();
             string? line;
             while ((line = reader.ReadLine()) != null)
@@ -92,17 +113,16 @@ public class ImportService : IImportService
 
             result.TotalRows = allLines.Count;
 
-            // Process data rows
             for (int i = 0; i < allLines.Count; i++)
             {
-                var rowNumber = i + 2; // +2 because row 1 is header and we're 0-indexed
-                await ProcessDataRow(allLines[i], headers, headerMappings, rowNumber, result);
+                var rowNumber = i + 2;
+                await ProcessDataRow(allLines[i], headers, headerMappings, rowNumber, result, treatmentCache, processedMrns);
             }
 
             await _unitOfWork.SaveChangesAsync();
-            
-            _logger.LogInformation("Import completed. Success: {Success}, Skipped: {Skipped}, Errors: {Errors}",
-                result.SuccessfulImports, result.SkippedRows, result.Errors.Count);
+
+            _logger.LogInformation("Import completed. Success: {Success}, Skipped: {Skipped}, Errors: {Errors}, NewTreatments: {NewTreatments}",
+                result.SuccessfulImports, result.SkippedRows, result.Errors.Count, result.NewTreatmentsAdded);
 
             return result;
         }
@@ -128,19 +148,16 @@ public class ImportService : IImportService
             {
                 if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
                 {
-                    // Escaped quote
                     currentField.Append('"');
-                    i++; // Skip next quote
+                    i++;
                 }
                 else
                 {
-                    // Toggle quote state
                     inQuotes = !inQuotes;
                 }
             }
             else if (c == ',' && !inQuotes)
             {
-                // Field separator
                 result.Add(currentField.ToString());
                 currentField.Clear();
             }
@@ -150,22 +167,19 @@ public class ImportService : IImportService
             }
         }
 
-        // Add the last field
         result.Add(currentField.ToString());
-
         return result.ToArray();
     }
 
     private Dictionary<string, int> MapHeaders(string[] headers)
     {
         var mappings = new Dictionary<string, int>();
-        
+
         for (int i = 0; i < headers.Length; i++)
         {
             var header = headers[i]?.Trim();
             if (!string.IsNullOrEmpty(header))
             {
-                // Map common variations
                 var normalizedHeader = NormalizeHeader(header);
                 mappings[normalizedHeader] = i;
             }
@@ -174,61 +188,75 @@ public class ImportService : IImportService
         return mappings;
     }
 
-    private string NormalizeHeader(string header)
-    {
-        return header.ToLowerInvariant().Replace(" ", "").Replace("_", "");
-    }
+    private string NormalizeHeader(string header) =>
+        header.ToLowerInvariant().Replace(" ", "").Replace("_", "");
 
-    private async Task ProcessDataRow(string csvLine, string[] headers, Dictionary<string, int> headerMappings, int rowNumber, ImportResultDto result)
+    private static string NormalizeMrn(string mrn) => mrn.Trim().ToUpperInvariant();
+
+    private async Task ProcessDataRow(
+        string csvLine,
+        string[] headers,
+        Dictionary<string, int> headerMappings,
+        int rowNumber,
+        ImportResultDto result,
+        Dictionary<string, Guid> treatmentCache,
+        HashSet<string> processedMrns)
     {
         try
         {
             var fields = ParseCsvLine(csvLine);
-            
-            // Extract required fields
-            var mrn = GetCellValue(fields, headerMappings, "mrn");
+
+            var mrnRaw = GetCellValue(fields, headerMappings, "mrn");
             var name = GetCellValue(fields, headerMappings, "name");
 
-            if (string.IsNullOrWhiteSpace(mrn) || string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(mrnRaw) || string.IsNullOrWhiteSpace(name))
             {
                 result.SkippedRows++;
                 result.Warnings.Add($"Row {rowNumber}: Skipped - Missing required MRN or Name");
                 return;
             }
 
-            // Check if patient already exists
-            var existingPatient = await _unitOfWork.Patients.GetByMRNAsync(mrn);
+            var normalizedMrn = NormalizeMrn(mrnRaw);
+
+            // Duplicate within the same file (second occurrence in this batch)
+            if (processedMrns.Contains(normalizedMrn))
+            {
+                result.SkippedRows++;
+                result.Warnings.Add($"Row {rowNumber}: Skipped - Duplicate MRN '{mrnRaw}' already imported earlier in this file");
+                return;
+            }
+
+            // Existing in database
+            var existingPatient = await _unitOfWork.Patients.GetByMRNAsync(mrnRaw);
             if (existingPatient != null)
             {
                 result.SkippedRows++;
-                result.Warnings.Add($"Row {rowNumber}: Skipped - Patient with MRN '{mrn}' already exists");
+                result.Warnings.Add($"Row {rowNumber}: Skipped - Patient with MRN '{mrnRaw}' already exists in database");
                 return;
             }
 
             var patient = new PatientTracking
             {
                 Id = Guid.NewGuid(),
-                MRN = mrn,
-                Name = name,
+                MRN = mrnRaw.Trim(),
+                Name = name.Trim(),
                 CreatedBy = result.ImportedBy,
                 CreatedOn = DateTime.UtcNow
             };
 
             var comments = new List<string>();
 
-            // Process all fields with validation
-            ProcessDateField(fields, headerMappings, "referraldate", v => patient.ReferralDate = v ?? DateTime.Today, comments);
+            ProcessDateField(fields, headerMappings, "referraldate", v => patient.ReferralDate = v, comments);
             ProcessDateField(fields, headerMappings, "counsellingdate", v => patient.CounsellingDate = v, comments);
-            
+
             patient.DelayReason = GetCellValue(fields, headerMappings, "delayreason");
-            
+
             ProcessBooleanField(fields, headerMappings, "survey", v => patient.SurveyReturned = v ?? false, comments);
             ProcessBooleanField(fields, headerMappings, "english1stlanguage", v => patient.IsEnglishFirstLanguage = v ?? true, comments);
             ProcessBooleanField(fields, headerMappings, "adjuvant", v => patient.Adjuvant = v ?? false, comments);
             ProcessBooleanField(fields, headerMappings, "palliative", v => patient.Palliative = v ?? false, comments);
 
-            // Process treatment with auto-creation
-            await ProcessTreatmentField(fields, headerMappings, patient, result, comments);
+            await ProcessTreatmentField(fields, headerMappings, patient, result, comments, treatmentCache);
 
             ProcessDateField(fields, headerMappings, "dispensed", v => patient.DispensedDate = v, comments);
             ProcessDateField(fields, headerMappings, "imaging", v => patient.ImagingDate = v, comments);
@@ -236,16 +264,16 @@ public class ImportService : IImportService
             ProcessDateField(fields, headerMappings, "nextcycledue", v => patient.NextCycleDue = v, comments);
             ProcessDateField(fields, headerMappings, "nextappt", v => patient.NextAppointment = v, comments);
 
-            // Combine existing comments with validation comments
             var existingComments = GetCellValue(fields, headerMappings, "comments");
             var allComments = new List<string>();
             if (!string.IsNullOrWhiteSpace(existingComments))
                 allComments.Add(existingComments);
             allComments.AddRange(comments);
-            
+
             patient.Comments = string.Join("; ", allComments);
 
             await _unitOfWork.Patients.AddAsync(patient);
+            processedMrns.Add(normalizedMrn); // mark only after successful queue
             result.SuccessfulImports++;
         }
         catch (Exception ex)
@@ -265,7 +293,7 @@ public class ImportService : IImportService
         return null;
     }
 
-    private void ProcessDateField(string[] fields, Dictionary<string, int> headerMappings, 
+    private void ProcessDateField(string[] fields, Dictionary<string, int> headerMappings,
         string headerKey, Action<DateTime?> setter, List<string> comments)
     {
         var value = GetCellValue(fields, headerMappings, headerKey);
@@ -275,14 +303,29 @@ public class ImportService : IImportService
             return;
         }
 
-        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+        var trimmed = value.Trim();
+
+        if (double.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var oa))
         {
-            setter(date);
+            try
+            {
+                var dateFromOa = DateTime.FromOADate(oa);
+                setter(dateFromOa);
+                return;
+            }
+            catch { }
+        }
+
+        var normalized = trimmed.Replace('-', '/').Replace('.', '/');
+
+        if (DateTime.TryParseExact(normalized, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            setter(parsed);
         }
         else
         {
             setter(null);
-            comments.Add($"Invalid date value '{value}' for {headerKey}");
+            comments.Add($"Invalid date value '{value}' for {headerKey} (expected dd/MM/yyyy)");
         }
     }
 
@@ -297,11 +340,11 @@ public class ImportService : IImportService
         }
 
         var normalizedValue = value.ToLowerInvariant();
-        if (normalizedValue == "true" || normalizedValue == "yes" || normalizedValue == "1")
+        if (normalizedValue is "true" or "yes" or "1" or "y")
         {
             setter(true);
         }
-        else if (normalizedValue == "false" || normalizedValue == "no" || normalizedValue == "0")
+        else if (normalizedValue is "false" or "no" or "0" or "n")
         {
             setter(false);
         }
@@ -312,36 +355,49 @@ public class ImportService : IImportService
         }
     }
 
-    private async Task ProcessTreatmentField(string[] fields, Dictionary<string, int> headerMappings,
-        PatientTracking patient, ImportResultDto result, List<string> comments)
+    private async Task ProcessTreatmentField(
+        string[] fields,
+        Dictionary<string, int> headerMappings,
+        PatientTracking patient,
+        ImportResultDto result,
+        List<string> comments,
+        Dictionary<string, Guid> treatmentCache)
     {
         var treatmentName = GetCellValue(fields, headerMappings, "treatment");
         if (string.IsNullOrWhiteSpace(treatmentName))
             return;
 
-        // Look up existing treatment
+        var key = treatmentName.Trim().ToUpperInvariant();
+
+        if (treatmentCache.TryGetValue(key, out var cachedId))
+        {
+            patient.TreatmentId = cachedId;
+            return;
+        }
+
         var existingTreatment = await _unitOfWork.Treatments.GetByNameAsync(treatmentName);
         if (existingTreatment != null)
         {
+            treatmentCache[key] = existingTreatment.Id;
             patient.TreatmentId = existingTreatment.Id;
             return;
         }
 
-        // Create new treatment
         var newTreatment = new Treatment
         {
             Id = Guid.NewGuid(),
-            Name = treatmentName,
+            Name = treatmentName.Trim(),
             IsAutoAdded = true,
             CreatedBy = "import",
             CreatedOn = DateTime.UtcNow
         };
 
         await _unitOfWork.Treatments.AddAsync(newTreatment);
+        treatmentCache[key] = newTreatment.Id;
         patient.TreatmentId = newTreatment.Id;
-        
+
         result.NewTreatmentsAdded++;
-        result.NewTreatmentNames.Add(treatmentName);
-        comments.Add($"New treatment auto-added during import: {treatmentName}");
+        result.NewTreatmentNames.Add(treatmentName.Trim());
+        comments.Add($"New treatment auto-added during import: {treatmentName.Trim()}");
     }
 }

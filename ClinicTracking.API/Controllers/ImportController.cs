@@ -35,25 +35,21 @@ public class ImportController : ControllerBase
                 return BadRequest("Only .csv files are supported");
             }
 
-            // Get current user
-            var currentUser = User.FindFirst(ClaimTypes.Name)?.Value ?? 
-                             User.FindFirst(ClaimTypes.Email)?.Value ?? 
-                             "Unknown User";
+            var currentUser = User.FindFirst(ClaimTypes.Name)?.Value ??
+                              User.FindFirst(ClaimTypes.Email)?.Value ??
+                              "Unknown User";
 
-            using var stream = file.OpenReadStream();
-            
-            // Validate file first
-            var isValid = await _importService.ValidateCsvFileAsync(stream);
+            // Use separate streams because validation routine closes/consumes the first one
+            await using var validateStream = file.OpenReadStream();
+            var isValid = await _importService.ValidateCsvFileAsync(validateStream);
             if (!isValid)
             {
                 return BadRequest("Invalid CSV file format. Please ensure the file has 'Name' and 'MRN' columns.");
             }
 
-            // Reset stream position for import
-            stream.Position = 0;
-            
-            var result = await _importService.ImportFromCsvAsync(stream, file.FileName, currentUser);
-            
+            await using var importStream = file.OpenReadStream();
+            var result = await _importService.ImportFromCsvAsync(importStream, file.FileName, currentUser);
+
             if (result.Errors.Any())
             {
                 return StatusCode(500, result);
@@ -85,7 +81,6 @@ public class ImportController : ControllerBase
 
             using var stream = file.OpenReadStream();
             var isValid = await _importService.ValidateCsvFileAsync(stream);
-            
             return Ok(isValid);
         }
         catch (Exception ex)
