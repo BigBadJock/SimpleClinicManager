@@ -15,10 +15,32 @@
                         <i class="fas fa-pills me-2"></i>
                         Manage Treatments
                     </h4>
-                    <button class="btn btn-primary" @onclick="ShowCreateModal">
-                        <i class="fas fa-plus me-2"></i>
-                        Add Treatment
-                    </button>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-filter me-2"></i>
+                                @GetFilterDisplayName()
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                                <li><a class="dropdown-item @(currentFilter == "all" ? "active" : "")" href="javascript:void(0)" @onclick='() => SetFilter("all")'>
+                                    <i class="fas fa-list me-2"></i>All Treatments
+                                </a></li>
+                                <li><a class="dropdown-item @(currentFilter == "auto" ? "active" : "")" href="javascript:void(0)" @onclick='() => SetFilter("auto")'>
+                                    <i class="fas fa-robot me-2"></i>Auto-Added
+                                </a></li>
+                                <li><a class="dropdown-item @(currentFilter == "manual" ? "active" : "")" href="javascript:void(0)" @onclick='() => SetFilter("manual")'>
+                                    <i class="fas fa-user me-2"></i>Manually Created
+                                </a></li>
+                                <li><a class="dropdown-item @(currentFilter == "inuse" ? "active" : "")" href="javascript:void(0)" @onclick='() => SetFilter("inuse")'>
+                                    <i class="fas fa-check-circle me-2"></i>In Use
+                                </a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary" @onclick="ShowCreateModal">
+                            <i class="fas fa-plus me-2"></i>
+                            Add Treatment
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (treatments == null)
@@ -44,17 +66,32 @@
                                     <tr>
                                         <th>Name</th>
                                         <th>Description</th>
+                                        <th>Source</th>
                                         <th>Status</th>
                                         <th>Created</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var treatment in treatments)
+                                    @foreach (var treatment in GetFilteredTreatments())
                                     {
                                         <tr>
                                             <td class="fw-bold">@treatment.Name</td>
                                             <td>@(treatment.Description ?? "No description")</td>
+                                            <td>
+                                                @if (treatment.IsAutoAdded)
+                                                {
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-robot me-1"></i>Auto-Added
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-user me-1"></i>Manual
+                                                    </span>
+                                                }
+                                            </td>
                                             <td>
                                                 @if (treatment.IsInUse)
                                                 {
@@ -144,6 +181,7 @@
     private bool isEditing = false;
     private bool isSaving = false;
     private Guid editingId = Guid.Empty;
+    private string currentFilter = "all";
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,6 +199,35 @@
         {
             await JSRuntime.InvokeVoidAsync("alert", "Error loading treatments. Please try again.");
         }
+    }
+
+    private IEnumerable<TreatmentDto> GetFilteredTreatments()
+    {
+        if (treatments == null) return Enumerable.Empty<TreatmentDto>();
+
+        return currentFilter switch
+        {
+            "auto" => treatments.Where(t => t.IsAutoAdded),
+            "manual" => treatments.Where(t => !t.IsAutoAdded),
+            "inuse" => treatments.Where(t => t.IsInUse),
+            _ => treatments
+        };
+    }
+
+    private void SetFilter(string filter)
+    {
+        currentFilter = filter;
+    }
+
+    private string GetFilterDisplayName()
+    {
+        return currentFilter switch
+        {
+            "auto" => "Auto-Added",
+            "manual" => "Manually Created",
+            "inuse" => "In Use",
+            _ => "All Treatments"
+        };
     }
 
     private async Task ShowCreateModal()
@@ -247,7 +314,7 @@
         }
     }
 
-    // Helper wrappers so failures don’t crash the circuit
+    // Helper wrappers so failures donï¿½t crash the circuit
     private async Task SafeShowModal()
     {
         try { await JSRuntime.InvokeVoidAsync("showModal", "#treatmentModal"); }

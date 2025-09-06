@@ -18,6 +18,11 @@ builder.Services.AddHttpClient<ITreatmentService, TreatmentService>(client =>
     client.BaseAddress = new Uri("https://localhost:7132/");
 });
 
+builder.Services.AddHttpClient<IImportService, ImportService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7132/");
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
