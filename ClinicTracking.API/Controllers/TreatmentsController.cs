@@ -168,6 +168,7 @@ public class TreatmentsController : ControllerBase
             Id = treatment.Id,
             Name = treatment.Name,
             Description = treatment.Description,
+            IsAutoAdded = treatment.IsAutoAdded,
             CreatedBy = treatment.CreatedBy,
             CreatedOn = treatment.CreatedOn,
             ModifiedBy = treatment.ModifiedBy,

@@ -13,6 +13,8 @@ public class TreatmentDto
     [StringLength(500)]
     public string? Description { get; set; }
     
+    public bool IsAutoAdded { get; set; }
+    
     public string CreatedBy { get; set; } = null!;
     public DateTime CreatedOn { get; set; }
     public string? ModifiedBy { get; set; }
