@@ -208,7 +208,7 @@ John Smith,MRN001,Chemotherapy";
         Assert.Equal(1, result.TotalRows);
         Assert.Equal(0, result.SuccessfulImports);
         Assert.Equal(1, result.SkippedRows);
-        Assert.Contains("Row 2: Skipped - Patient with MRN 'MRN001' already exists", result.Warnings);
+        Assert.Contains("Row 2: Skipped - Patient with MRN 'MRN001' already exists in database", result.Warnings);
     }
 
     [Fact]

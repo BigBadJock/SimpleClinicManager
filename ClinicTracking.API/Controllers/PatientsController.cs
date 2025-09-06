@@ -659,7 +659,8 @@ public class PatientsController : ControllerBase
     private List<TrendDataDto> CalculateReferralTrends(List<PatientTracking> patients)
     {
         return patients
-            .GroupBy(p => new { Year = p.ReferralDate.Year, Month = p.ReferralDate.Month })
+            .Where(p => p.ReferralDate.HasValue)
+            .GroupBy(p => new { Year = p.ReferralDate!.Value.Year, Month = p.ReferralDate!.Value.Month })
             .Select(g => new TrendDataDto
             {
                 Period = $"{g.Key.Year:0000}-{g.Key.Month:00}",
