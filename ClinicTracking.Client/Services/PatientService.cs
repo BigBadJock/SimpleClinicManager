@@ -1,5 +1,4 @@
 using ClinicTracking.Client.DTOs;
-using System.Net.Http.Json;
 
 namespace ClinicTracking.Client.Services;
 
@@ -102,7 +101,7 @@ public class PatientService : IPatientService
             queryParams.Add($"filter={Uri.EscapeDataString(filter)}");
         if (!string.IsNullOrEmpty(searchTerm))
             queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
-        
+
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         var response = await _httpClient.GetAsync($"api/patients/export/csv{queryString}");
         response.EnsureSuccessStatusCode();
@@ -116,11 +115,12 @@ public class PatientService : IPatientService
             queryParams.Add($"filter={Uri.EscapeDataString(filter)}");
         if (!string.IsNullOrEmpty(searchTerm))
             queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
-        
+
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         var response = await _httpClient.GetAsync($"api/patients/export/excel{queryString}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync();
+    }
 
     public async Task<StatisticsDto?> GetStatisticsAsync(StatisticsFilterDto filter)
     {
