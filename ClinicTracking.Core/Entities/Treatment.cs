@@ -13,6 +13,9 @@ public class Treatment
     [StringLength(500)]
     public string? Description { get; set; }
     
+    // Import metadata fields
+    public bool IsAutoAdded { get; set; } = false;
+    
     // Audit fields
     public string CreatedBy { get; set; } = null!;
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
