@@ -490,8 +490,11 @@ public class PatientsController : ControllerBase
                 PatientCount = g.Count(),
                 AverageWaitTime = g.Where(p => p.WaitTimeReferralToCounselling.HasValue)
                                  .Select(p => p.WaitTimeReferralToCounselling!.Value)
-                                 .DefaultIfEmpty()
-                                 .Average()
+                                 .Any()
+                                 ? g.Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                                   .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                                   .Average()
+                                 : (double?)null
             })
             .OrderByDescending(c => c.PatientCount)
             .ToList();
