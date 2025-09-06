@@ -294,38 +294,3 @@ window.renderTrendsChart = function(data) {
     });
 };
 
-window.renderNextAppointmentChart = function(data) {
-    destroyChart('nextAppointmentChart');
-    
-    const ctx = document.getElementById('nextAppointmentChart').getContext('2d');
-    chartInstances['nextAppointmentChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.daysRange),
-            datasets: [{
-                label: 'Number of Patients',
-                data: data.map(d => d.count),
-                backgroundColor: 'rgba(255, 205, 86, 0.6)',
-                borderColor: 'rgba(255, 205, 86, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-};

@@ -265,7 +265,6 @@
                                 </div>
                             </div>
                         </div>
-                        <canvas id="nextAppointmentChart" width="400" height="200"></canvas>
                     </div>
                 </div>
             </div>
@@ -287,6 +286,7 @@
     private bool loading = true;
     private string? errorMessage;
     private string? filterValidationMessage;
+    private bool chartsRendered = false;   // NEW
 
     protected override async Task OnInitializedAsync()
     {
@@ -295,13 +295,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && statistics != null)
+        // Only (re)draw when we have data and haven't drawn for the current dataset
+        if (statistics != null && !chartsRendered)
         {
             await RenderCharts();
-        }
-        else if (statistics != null)
-        {
-            await RenderCharts();
+            chartsRendered = true;
         }
     }
 
@@ -309,7 +307,8 @@
     {
         loading = true;
         errorMessage = null;
-        
+        chartsRendered = false;   // reset so charts are redrawn for new data
+
         try
         {
             var filter = new StatisticsFilterDto
@@ -317,9 +316,9 @@
                 StartDate = startDate,
                 EndDate = endDate
             };
-            
+
             statistics = await PatientService.GetStatisticsAsync(filter);
-            
+
             if (statistics == null)
             {
                 errorMessage = "Failed to load statistics data.";
@@ -332,24 +331,21 @@
         finally
         {
             loading = false;
+            StateHasChanged(); // ensure a render to trigger chart draw
         }
     }
 
     private async Task ApplyFilter()
     {
         filterValidationMessage = null;
-        
+
         if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
         {
             filterValidationMessage = "Start date must be before or equal to end date.";
             return;
         }
-        
+
         await LoadStatistics();
-        if (statistics != null)
-        {
-            await RenderCharts();
-        }
     }
 
     private async Task ClearFilter()
@@ -358,23 +354,13 @@
         endDate = null;
         filterValidationMessage = null;
         await LoadStatistics();
-        if (statistics != null)
-        {
-            await RenderCharts();
-        }
     }
 
-    private string FormatDays(double? days)
-    {
-        return days.HasValue ? $"{days.Value:F1} days" : "N/A";
-    }
+    private string FormatDays(double? days) =>
+        days.HasValue ? $"{days.Value:F1} days" : "N/A";
 
-    private string FormatMinMax(int? min, int? max)
-    {
-        if (min.HasValue && max.HasValue)
-            return $"{min}/{max} days";
-        return "N/A";
-    }
+    private string FormatMinMax(int? min, int? max) =>
+        (min.HasValue && max.HasValue) ? $"{min}/{max} days" : "N/A";
 
     private async Task RenderCharts()
     {
@@ -387,6 +373,6 @@
         await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics);
         await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics);
         await JSRuntime.InvokeVoidAsync("renderTrendsChart", statistics.ReferralTrends);
-        await JSRuntime.InvokeVoidAsync("renderNextAppointmentChart", statistics.OperationalMetrics.NextAppointmentDistribution);
+
     }
 }

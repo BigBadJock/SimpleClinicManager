@@ -146,7 +146,7 @@ public class PatientsController : ControllerBase
         try
         {
             var allPatients = await _unitOfWork.Patients.GetAllAsync();
-            
+
             // Apply date filtering
             var filteredPatients = allPatients.AsQueryable();
             if (filter.StartDate.HasValue)
@@ -466,21 +466,49 @@ public class PatientsController : ControllerBase
 
     private List<TreatmentTypeDto> CalculateTreatmentTypes(List<PatientTracking> patients)
     {
-        var patientsWithTreatment = patients.Where(p => !string.IsNullOrEmpty(p.Treatment)).ToList();
-        var totalCount = patientsWithTreatment.Count;
-
-        var treatmentGroups = patientsWithTreatment
-            .GroupBy(p => p.Treatment!)
-            .Select(g => new TreatmentTypeDto
-            {
-                TreatmentName = g.Key,
-                PatientCount = g.Count(),
-                Percentage = totalCount > 0 ? (double)g.Count() / totalCount * 100 : 0
-            })
-            .OrderByDescending(t => t.PatientCount)
+        // Filter to patients that actually have a TreatmentId assigned
+        var patientsWithTreatment = patients
+            .Where(p => p.TreatmentId.HasValue)
             .ToList();
 
-        return treatmentGroups;
+        var totalCount = patientsWithTreatment.Count;
+        if (totalCount == 0)
+        {
+            return new List<TreatmentTypeDto>(); // nothing to report
+        }
+
+        // Group by TreatmentId (source of truth now)
+        var grouped = patientsWithTreatment
+            .GroupBy(p => p.TreatmentId!.Value)
+            .Select(g =>
+            {
+                // Prefer navigation property name if loaded, else fallback
+                var first = g.First();
+                var name = first.TreatmentLookup?.Name;
+
+                // If navigation not loaded (null), attempt to fall back to the TreatmentName
+                // already exposed via DTO mapping; if still null use a placeholder.
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = "Unknown / Unloaded";
+                }
+
+                var count = g.Count();
+
+                return new TreatmentTypeDto
+                {
+                    TreatmentName = name,
+                    PatientCount = count,
+                    Percentage = totalCount > 0
+                        ? (double)count / totalCount * 100d
+                        : 0d
+                };
+            })
+            .OrderByDescending(x => x.PatientCount)
+            .ThenBy(x => x.TreatmentName)
+            .ToList();
+
+        return grouped;
     }
 
     private List<CounsellorMetricDto> CalculateCounsellorMetrics(List<PatientTracking> patients)
