@@ -130,6 +130,5 @@ public class PatientService : IPatientService
             return await response.Content.ReadFromJsonAsync<StatisticsDto>();
         }
         return null;
-
     }
 }

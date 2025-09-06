@@ -33,6 +33,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Register export service
 builder.Services.AddScoped<IExportService, ExportService>();
 
+// Register import service
+builder.Services.AddScoped<IImportService, ImportService>();
+
 // Configure Authentication (commented out for development, uncomment for production)
 /*
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
