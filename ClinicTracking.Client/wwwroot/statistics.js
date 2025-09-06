@@ -68,6 +68,7 @@ window.renderWaitTimeChart = function(data) {
 };
 
 window.renderTreatmentTimeChart = function(data) {
+    if (hideCanvasIfChartFails('treatmentTimeChart')) return;
     destroyChart('treatmentTimeChart');
     
     const ctx = document.getElementById('treatmentTimeChart').getContext('2d');
