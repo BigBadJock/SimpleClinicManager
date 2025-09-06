@@ -5,7 +5,7 @@ public class PatientTracking
     public Guid Id { get; set; }
     public string MRN { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public DateTime ReferralDate { get; set; }
+    public DateTime? ReferralDate { get; set; }
     public DateTime? CounsellingDate { get; set; }
     public string? CounsellingBy { get; set; }
     public string? DelayReason { get; set; }
@@ -30,7 +30,7 @@ public class PatientTracking
 
     // Calculated fields (not mapped to DB)
     public int? WaitTimeReferralToCounselling =>
-        CounsellingDate.HasValue ? (int?)(CounsellingDate.Value - ReferralDate).TotalDays : null;
+        (ReferralDate.HasValue && CounsellingDate.HasValue) ? (int?)(CounsellingDate.Value - ReferralDate.Value).TotalDays : null;
 
     public int? TreatTime =>
         (CounsellingDate.HasValue && DispensedDate.HasValue)

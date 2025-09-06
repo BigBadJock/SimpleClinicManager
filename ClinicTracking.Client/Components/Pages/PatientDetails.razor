@@ -60,7 +60,7 @@ else
                                 <strong>Referral Date:</strong>
                             </div>
                             <div class="col-6">
-                                @patient.ReferralDate.ToString("dd/MM/yyyy")
+                                @(patient.ReferralDate?.ToString("dd/MM/yyyy") ?? "Not set")
                             </div>
                         </div>
                         

@@ -35,8 +35,7 @@ public class ClinicTrackingDbContext : DbContext
                 .HasMaxLength(200)
                 .IsRequired();
 
-            entity.Property(e => e.ReferralDate)
-                .IsRequired();
+            // ReferralDate is now nullable, so we remove the IsRequired() configuration
 
             entity.Property(e => e.CounsellingBy)
                 .HasMaxLength(200);

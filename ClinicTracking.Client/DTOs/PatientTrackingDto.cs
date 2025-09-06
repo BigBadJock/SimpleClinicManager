@@ -5,7 +5,7 @@ public class PatientTrackingDto
     public Guid Id { get; set; }
     public string MRN { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public DateTime ReferralDate { get; set; }
+    public DateTime? ReferralDate { get; set; }
     public DateTime? CounsellingDate { get; set; }
     public string? CounsellingBy { get; set; }
     public string? DelayReason { get; set; }

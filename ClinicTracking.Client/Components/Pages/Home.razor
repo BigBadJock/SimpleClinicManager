@@ -183,7 +183,7 @@
                                 <tr>
                                     <td><strong>@patient.MRN</strong></td>
                                     <td>@patient.Name</td>
-                                    <td>@patient.ReferralDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@(patient.ReferralDate?.ToString("dd/MM/yyyy") ?? "Not set")</td>
                                     <td>
                                         @if (patient.CounsellingDate.HasValue)
                                         {

@@ -60,8 +60,8 @@ else
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="referralDate" class="form-label">Referral Date <span class="text-danger">*</span></label>
-                                        <InputDate id="referralDate" class="form-control" @bind-Value="patient.ReferralDate" />
+                                        <label for="referralDate" class="form-label">Referral Date</label>
+                                        <InputDateNullable id="referralDate" class="form-control" @bind-Value="patient.ReferralDate" />
                                         <ValidationMessage For="@(() => patient.ReferralDate)" />
                                     </div>
                                 </div>

@@ -74,7 +74,8 @@ public class PatientEditIntegrationTests
         // Check if Required attributes exist (would need more complex reflection for validation attributes)
         Assert.True(mrnProperty.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), false).Length > 0);
         Assert.True(nameProperty.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), false).Length > 0);
-        Assert.True(referralDateProperty.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), false).Length > 0);
+        // ReferralDate is now nullable, so it should NOT have a Required attribute
+        Assert.True(referralDateProperty.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), false).Length == 0);
     }
 
     [Fact]
