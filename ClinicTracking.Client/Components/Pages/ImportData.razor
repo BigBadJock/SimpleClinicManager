@@ -104,12 +104,12 @@
             {
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Upload Excel File</h5>
+                        <h5 class="mb-0">Upload CSV File</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <h6>Expected Excel Format</h6>
-                            <p>Your Excel file should have a header row with the following columns (case-insensitive):</p>
+                            <h6>Expected CSV Format</h6>
+                            <p>Your CSV file should have a header row with the following columns (case-insensitive):</p>
                             <div class="row">
                                 <div class="col-md-6">
                                     <ul class="list-unstyled small">
@@ -149,8 +149,8 @@
                         
                         <EditForm Model="this" OnValidSubmit="HandleFileUpload">
                             <div class="mb-3">
-                                <label for="fileInput" class="form-label">Choose Excel File (.xlsx)</label>
-                                <InputFile id="fileInput" class="form-control" OnChange="OnFileSelected" accept=".xlsx" />
+                                <label for="fileInput" class="form-label">Choose CSV File (.csv)</label>
+                                <InputFile id="fileInput" class="form-control" OnChange="OnFileSelected" accept=".csv" />
                                 @if (!string.IsNullOrEmpty(validationMessage))
                                 {
                                     <div class="text-danger mt-1">@validationMessage</div>
@@ -161,7 +161,7 @@
                             {
                                 <div class="alert alert-light">
                                     <div class="d-flex align-items-center">
-                                        <i class="fas fa-file-excel text-success me-2"></i>
+                                        <i class="fas fa-file-csv text-success me-2"></i>
                                         <div>
                                             <strong>@selectedFile.Name</strong>
                                             <br>
@@ -237,9 +237,9 @@
         if (selectedFile != null)
         {
             // Basic validation
-            if (!selectedFile.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            if (!selectedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                validationMessage = "Please select an Excel file (.xlsx)";
+                validationMessage = "Please select a CSV file (.csv)";
                 selectedFile = null;
                 return;
             }
@@ -260,7 +260,7 @@
         isValidating = true;
         try
         {
-            isFileValid = await ImportService.ValidateExcelFileAsync(selectedFile);
+            isFileValid = await ImportService.ValidateCsvFileAsync(selectedFile);
             fileValidated = true;
         }
         catch (Exception ex)
@@ -282,7 +282,7 @@
         isImporting = true;
         try
         {
-            importResult = await ImportService.ImportFromExcelAsync(selectedFile);
+            importResult = await ImportService.ImportFromCsvAsync(selectedFile);
             if (importResult == null)
             {
                 validationMessage = "Import failed. Please check the file format and try again.";

@@ -162,25 +162,7 @@ public class PatientsController : ControllerBase
         }
     }
 
-    [HttpGet("export/excel")]
-    public async Task<IActionResult> ExportExcel([FromQuery] string? filter = null, [FromQuery] string? searchTerm = null)
-    {
-        try
-        {
-            var patients = await GetPatientsForExport(filter, searchTerm);
-            var excelData = _exportService.ExportToExcel(patients);
-            
-            var fileName = $"patients_export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            return File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error exporting patients to Excel with filter: {Filter}, searchTerm: {SearchTerm}", filter, searchTerm);
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-[HttpPost("statistics")]
+    [HttpPost("statistics")]
     public async Task<ActionResult<StatisticsDto>> GetStatistics([FromBody] StatisticsFilterDto filter)
     {
         try

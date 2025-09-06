@@ -41,49 +41,6 @@ public class ExportServiceTests
         Assert.Contains("Chemotherapy", csvContent);
     }
 
-    [Fact(Skip = "EPPlus license configuration required")]
-    public void ExportToExcel_ShouldReturnValidExcelData()
-    {
-        // Arrange
-        // Set EPPlus license for the test
-        try
-        {
-            #pragma warning disable CS0618
-            OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-            #pragma warning restore CS0618
-        }
-        catch { }
-        
-        var exportService = new ExportService();
-        var patients = new List<PatientTrackingDto>
-        {
-            new PatientTrackingDto
-            {
-                Id = Guid.NewGuid(),
-                MRN = "MRN001",
-                Name = "John Smith",
-                ReferralDate = new DateTime(2024, 1, 1),
-                CounsellingDate = new DateTime(2024, 1, 10),
-                TreatmentName = "Chemotherapy",
-                CreatedBy = "TestUser",
-                CreatedOn = new DateTime(2024, 1, 1),
-                WaitTimeReferralToCounselling = 9,
-                TreatTime = 5
-            }
-        };
-
-        // Act
-        var excelData = exportService.ExportToExcel(patients);
-
-        // Assert
-        Assert.NotNull(excelData);
-        Assert.True(excelData.Length > 0);
-        
-        // Excel files should start with the zip file signature (PK)
-        Assert.Equal(0x50, excelData[0]); // 'P'
-        Assert.Equal(0x4B, excelData[1]); // 'K'
-    }
-
     [Fact]
     public void ExportToCsv_WithSpecialCharacters_ShouldEscapeCorrectly()
     {

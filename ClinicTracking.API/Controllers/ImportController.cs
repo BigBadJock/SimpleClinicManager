@@ -20,8 +20,8 @@ public class ImportController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("excel")]
-    public async Task<ActionResult<ImportResultDto>> ImportExcel(IFormFile file)
+    [HttpPost("csv")]
+    public async Task<ActionResult<ImportResultDto>> ImportCsv(IFormFile file)
     {
         try
         {
@@ -30,9 +30,9 @@ public class ImportController : ControllerBase
                 return BadRequest("No file uploaded");
             }
 
-            if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest("Only .xlsx files are supported");
+                return BadRequest("Only .csv files are supported");
             }
 
             // Get current user
@@ -43,16 +43,16 @@ public class ImportController : ControllerBase
             using var stream = file.OpenReadStream();
             
             // Validate file first
-            var isValid = await _importService.ValidateExcelFileAsync(stream);
+            var isValid = await _importService.ValidateCsvFileAsync(stream);
             if (!isValid)
             {
-                return BadRequest("Invalid Excel file format. Please ensure the file has 'Name' and 'MRN' columns.");
+                return BadRequest("Invalid CSV file format. Please ensure the file has 'Name' and 'MRN' columns.");
             }
 
             // Reset stream position for import
             stream.Position = 0;
             
-            var result = await _importService.ImportFromExcelAsync(stream, file.FileName, currentUser);
+            var result = await _importService.ImportFromCsvAsync(stream, file.FileName, currentUser);
             
             if (result.Errors.Any())
             {
@@ -63,13 +63,13 @@ public class ImportController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during Excel import");
+            _logger.LogError(ex, "Error during CSV import");
             return StatusCode(500, "An error occurred during import");
         }
     }
 
     [HttpPost("validate")]
-    public async Task<ActionResult<bool>> ValidateExcel(IFormFile file)
+    public async Task<ActionResult<bool>> ValidateCsv(IFormFile file)
     {
         try
         {
@@ -78,19 +78,19 @@ public class ImportController : ControllerBase
                 return BadRequest("No file uploaded");
             }
 
-            if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest("Only .xlsx files are supported");
+                return BadRequest("Only .csv files are supported");
             }
 
             using var stream = file.OpenReadStream();
-            var isValid = await _importService.ValidateExcelFileAsync(stream);
+            var isValid = await _importService.ValidateCsvFileAsync(stream);
             
             return Ok(isValid);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating Excel file");
+            _logger.LogError(ex, "Error validating CSV file");
             return StatusCode(500, "An error occurred during validation");
         }
     }
