@@ -12,6 +12,20 @@ public interface IExportService
 
 public class ExportService : IExportService
 {
+    static ExportService()
+    {
+        // Set EPPlus license once for the entire application
+        try
+        {
+            #pragma warning disable CS0618
+            OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+            #pragma warning restore CS0618
+        }
+        catch
+        {
+            // License already set or not supported in this version
+        }
+    }
     public byte[] ExportToCsv(IEnumerable<PatientTrackingDto> patients)
     {
         var csv = new StringBuilder();
@@ -52,11 +66,6 @@ public class ExportService : IExportService
 
     public byte[] ExportToExcel(IEnumerable<PatientTrackingDto> patients)
     {
-        // Set EPPlus license for non-commercial use (suppress warning for demo purposes)
-        #pragma warning disable CS0618
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        #pragma warning restore CS0618
-        
         using var package = new ExcelPackage();
         var worksheet = package.Workbook.Worksheets.Add("Patients");
         
