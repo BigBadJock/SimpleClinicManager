@@ -1,0 +1,338 @@
+@page "/import"
+@using ClinicTracking.Client.DTOs
+@using ClinicTracking.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IImportService ImportService
+@inject IJSRuntime JSRuntime
+@inject ILogger<ImportData> Logger
+
+<PageTitle>Import Data</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-upload me-2"></i>Import Patient Data
+            </h1>
+            
+            @if (isImporting)
+            {
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                        <span>Processing import... Please wait.</span>
+                    </div>
+                </div>
+            }
+            
+            @if (importResult != null)
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-@(importResult.Errors.Any() ? "danger" : "success") text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-@(importResult.Errors.Any() ? "exclamation-triangle" : "check-circle") me-2"></i>
+                            Import @(importResult.Errors.Any() ? "Completed with Errors" : "Successful")
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Import Statistics</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Total Rows:</strong> @importResult.TotalRows</li>
+                                    <li><strong>Successful Imports:</strong> @importResult.SuccessfulImports</li>
+                                    <li><strong>Skipped Rows:</strong> @importResult.SkippedRows</li>
+                                    <li><strong>New Treatments Added:</strong> @importResult.NewTreatmentsAdded</li>
+                                    <li><strong>Imported By:</strong> @importResult.ImportedBy</li>
+                                    <li><strong>Imported At:</strong> @importResult.ImportedAt.ToString("yyyy-MM-dd HH:mm:ss")</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                @if (importResult.NewTreatmentNames.Any())
+                                {
+                                    <h6>New Treatments Created</h6>
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var treatment in importResult.NewTreatmentNames)
+                                        {
+                                            <li class="list-group-item px-0">@treatment</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (importResult.Warnings.Any())
+                        {
+                            <div class="mt-3">
+                                <h6>Warnings</h6>
+                                <div class="alert alert-warning">
+                                    <ul class="mb-0">
+                                        @foreach (var warning in importResult.Warnings)
+                                        {
+                                            <li>@warning</li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (importResult.Errors.Any())
+                        {
+                            <div class="mt-3">
+                                <h6>Errors</h6>
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        @foreach (var error in importResult.Errors)
+                                        {
+                                            <li>@error</li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary" @onclick="ClearResult">
+                                <i class="fas fa-redo me-2"></i>Import Another File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+            
+            @if (importResult == null)
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Upload Excel File</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>Expected Excel Format</h6>
+                            <p>Your Excel file should have a header row with the following columns (case-insensitive):</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled small">
+                                        <li><strong>Required:</strong></li>
+                                        <li>• Name</li>
+                                        <li>• MRN</li>
+                                        <li><strong>Optional:</strong></li>
+                                        <li>• Referral date</li>
+                                        <li>• Counselling date</li>
+                                        <li>• Delay Reason</li>
+                                        <li>• Survey</li>
+                                        <li>• english 1st language</li>
+                                        <li>• Treatment</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled small">
+                                        <li>• Adjuvant</li>
+                                        <li>• Palliative</li>
+                                        <li>• Dispensed</li>
+                                        <li>• Imaging</li>
+                                        <li>• Results</li>
+                                        <li>• Next cycle due</li>
+                                        <li>• Next appt</li>
+                                        <li>• comments</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-info mt-2">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Note:</strong> Invalid date/boolean values will be moved to the comments field instead of causing errors.
+                                    New treatments will be automatically created and flagged for review.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <EditForm Model="this" OnValidSubmit="HandleFileUpload">
+                            <div class="mb-3">
+                                <label for="fileInput" class="form-label">Choose Excel File (.xlsx)</label>
+                                <InputFile id="fileInput" class="form-control" OnChange="OnFileSelected" accept=".xlsx" />
+                                @if (!string.IsNullOrEmpty(validationMessage))
+                                {
+                                    <div class="text-danger mt-1">@validationMessage</div>
+                                }
+                            </div>
+                            
+                            @if (selectedFile != null)
+                            {
+                                <div class="alert alert-light">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-excel text-success me-2"></i>
+                                        <div>
+                                            <strong>@selectedFile.Name</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                Size: @FormatFileSize(selectedFile.Size) | 
+                                                Last Modified: @selectedFile.LastModified.ToString("yyyy-MM-dd HH:mm:ss")
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                @if (isValidating)
+                                {
+                                    <div class="alert alert-info">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                            <span>Validating file format...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else if (fileValidated)
+                                {
+                                    <div class="alert alert-@(isFileValid ? "success" : "danger")">
+                                        <i class="fas fa-@(isFileValid ? "check-circle" : "exclamation-triangle") me-2"></i>
+                                        @(isFileValid ? "File format is valid and ready for import." : "File format is invalid. Please ensure it has 'Name' and 'MRN' columns.")
+                                    </div>
+                                }
+                            }
+                            
+                            <div class="d-flex gap-2">
+                                @if (selectedFile != null && !isValidating)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="ValidateFile" disabled="@isImporting">
+                                        <i class="fas fa-check me-2"></i>Validate File
+                                    </button>
+                                }
+                                
+                                <button type="submit" class="btn btn-primary" disabled="@(selectedFile == null || isImporting || isValidating || (!fileValidated || !isFileValid))">
+                                    <i class="fas fa-upload me-2"></i>Import Data
+                                </button>
+                                
+                                @if (selectedFile != null)
+                                {
+                                    <button type="button" class="btn btn-outline-danger" @onclick="ClearFile">
+                                        <i class="fas fa-times me-2"></i>Clear
+                                    </button>
+                                }
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IBrowserFile? selectedFile;
+    private ImportResultDto? importResult;
+    private bool isImporting = false;
+    private bool isValidating = false;
+    private bool fileValidated = false;
+    private bool isFileValid = false;
+    private string validationMessage = "";
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        validationMessage = "";
+        fileValidated = false;
+        isFileValid = false;
+
+        if (selectedFile != null)
+        {
+            // Basic validation
+            if (!selectedFile.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                validationMessage = "Please select an Excel file (.xlsx)";
+                selectedFile = null;
+                return;
+            }
+
+            if (selectedFile.Size > 50 * 1024 * 1024) // 50MB
+            {
+                validationMessage = "File size must be less than 50MB";
+                selectedFile = null;
+                return;
+            }
+        }
+    }
+
+    private async Task ValidateFile()
+    {
+        if (selectedFile == null) return;
+
+        isValidating = true;
+        try
+        {
+            isFileValid = await ImportService.ValidateExcelFileAsync(selectedFile);
+            fileValidated = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error validating file");
+            validationMessage = "Error validating file. Please try again.";
+            isFileValid = false;
+        }
+        finally
+        {
+            isValidating = false;
+        }
+    }
+
+    private async Task HandleFileUpload()
+    {
+        if (selectedFile == null) return;
+
+        isImporting = true;
+        try
+        {
+            importResult = await ImportService.ImportFromExcelAsync(selectedFile);
+            if (importResult == null)
+            {
+                validationMessage = "Import failed. Please check the file format and try again.";
+            }
+            else
+            {
+                // Clear file selection after successful import
+                selectedFile = null;
+                fileValidated = false;
+                isFileValid = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during import");
+            validationMessage = "An error occurred during import. Please try again.";
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private void ClearFile()
+    {
+        selectedFile = null;
+        validationMessage = "";
+        fileValidated = false;
+        isFileValid = false;
+    }
+
+    private void ClearResult()
+    {
+        importResult = null;
+        selectedFile = null;
+        validationMessage = "";
+        fileValidated = false;
+        isFileValid = false;
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}
