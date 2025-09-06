@@ -69,75 +69,89 @@ window.renderWaitTimeChart = function(data) {
 
 window.renderTreatmentTimeChart = function(data) {
     if (hideCanvasIfChartFails('treatmentTimeChart')) return;
+    if (hideCanvasIfChartFails('treatmentTimeChart')) return;
+    
     destroyChart('treatmentTimeChart');
     
-    const ctx = document.getElementById('treatmentTimeChart').getContext('2d');
-    chartInstances['treatmentTimeChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.range),
-            datasets: [{
-                label: 'Number of Patients',
-                data: data.map(d => d.count),
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+    try {
+        const ctx = document.getElementById('treatmentTimeChart').getContext('2d');
+        chartInstances['treatmentTimeChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.range),
+                datasets: [{
+                    label: 'Number of Patients',
+                    data: data.map(d => d.count),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Chart rendering failed:', error);
+        showFallback('treatmentTimeChart');
+    }
 };
 
 window.renderTreatmentTypesChart = function(data) {
+    if (hideCanvasIfChartFails('treatmentTypesChart')) return;
+    
     destroyChart('treatmentTypesChart');
     
-    const ctx = document.getElementById('treatmentTypesChart').getContext('2d');
-    chartInstances['treatmentTypesChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.treatmentName),
-            datasets: [{
-                label: 'Number of Patients',
-                data: data.map(d => d.patientCount),
-                backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                borderColor: 'rgba(255, 99, 132, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+    try {
+        const ctx = document.getElementById('treatmentTypesChart').getContext('2d');
+        chartInstances['treatmentTypesChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.treatmentName),
+                datasets: [{
+                    label: 'Number of Patients',
+                    data: data.map(d => d.patientCount),
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Chart rendering failed:', error);
+        showFallback('treatmentTypesChart');
+    }
 };
 
 window.renderCounsellorChart = function(data) {
