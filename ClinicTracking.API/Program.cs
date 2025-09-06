@@ -1,4 +1,5 @@
 using ClinicTracking.API.Authentication;
+using ClinicTracking.API.Services;
 using ClinicTracking.Core.Interfaces;
 using ClinicTracking.Infrastructure.Data;
 using ClinicTracking.Infrastructure.Repositories;
@@ -28,6 +29,9 @@ else
 
 // Register repositories and Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Register export service
+builder.Services.AddScoped<IExportService, ExportService>();
 
 // Configure Authentication (commented out for development, uncomment for production)
 /*
