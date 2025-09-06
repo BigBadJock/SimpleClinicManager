@@ -8,17 +8,49 @@
 <PageTitle>Clinic Statistics Dashboard</PageTitle>
 
 <div class="container-fluid">
+    <!-- Print Header (visible only when printing) -->
+    <div class="print-header" style="display: none;">
+        <div class="clinic-name">Simple Clinic Manager</div>
+        <h1>Statistics Report</h1>
+        <div class="report-date">Generated on: @DateTime.Now.ToString("MMMM dd, yyyy 'at' HH:mm")</div>
+    </div>
+
+    <!-- Print Filters Section (visible only when printing) -->
+    @if (statistics != null)
+    {
+        <div class="print-filters" style="display: none;">
+            <h3>Applied Filters</h3>
+            @if (startDate.HasValue || endDate.HasValue)
+            {
+                <p><strong>Date Range:</strong> 
+                   @(startDate?.ToString("yyyy-MM-dd") ?? "No start date") to 
+                   @(endDate?.ToString("yyyy-MM-dd") ?? "No end date")</p>
+            }
+            else
+            {
+                <p><strong>Date Range:</strong> All available data</p>
+            }
+            <p><strong>Report Generated:</strong> @DateTime.Now.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
+        </div>
+    }
+
     <div class="row">
         <div class="col-12">
-            <h1 class="mb-4">
-                <i class="fas fa-chart-bar me-2"></i>
-                Clinic Statistics Dashboard
-            </h1>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Clinic Statistics Dashboard
+                </h1>
+                <button class="btn btn-outline-primary no-print" @onclick="PrintReport" disabled="@(loading || statistics == null)">
+                    <i class="fas fa-print me-2"></i>
+                    Print Report
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Filters Section -->
-    <div class="row mb-4">
+    <div class="row mb-4 no-print">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
@@ -374,5 +406,11 @@
         await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics);
         await JSRuntime.InvokeVoidAsync("renderTrendsChart", statistics.ReferralTrends);
 
+    }
+
+    private async Task PrintReport()
+    {
+        // Call JavaScript print function
+        await JSRuntime.InvokeVoidAsync("printPage");
     }
 }
