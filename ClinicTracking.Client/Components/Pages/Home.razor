@@ -380,8 +380,8 @@
     private bool sortAscending = true;
     
     // Pagination properties
-    private PaginationParameters pagination = new() { PageNumber = 1, PageSize = 25 };
-    private readonly int[] pageSizeOptions = { 25, 50, 100 };
+    private PaginationParameters pagination = new() { PageNumber = 1, PageSize = 10 };
+    private readonly int[] pageSizeOptions = { 10, 25, 50, 100 };
 
     protected override async Task OnInitializedAsync()
     {
