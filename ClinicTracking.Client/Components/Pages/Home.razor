@@ -105,19 +105,41 @@
     {
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    @if (!string.IsNullOrEmpty(currentFilter))
-                    {
-                        <span>@currentFilter</span>
-                        <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ClearFilter">
-                            Clear Filter
-                        </button>
-                    }
-                    else
-                    {
-                        <span>All Patients</span>
-                    }
-                </h5>
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">
+                            @if (!string.IsNullOrEmpty(currentFilter))
+                            {
+                                <span>@currentFilter</span>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ClearFilter">
+                                    Clear Filter
+                                </button>
+                            }
+                            else
+                            {
+                                <span>All Patients</span>
+                            }
+                        </h5>
+                        @if (pagedResult != null && pagedResult.TotalCount > 0)
+                        {
+                            <small class="text-muted">
+                                Showing @((pagedResult.PageNumber - 1) * pagedResult.PageSize + 1)–@Math.Min(pagedResult.PageNumber * pagedResult.PageSize, pagedResult.TotalCount) of @pagedResult.TotalCount patients
+                            </small>
+                        }
+                    </div>
+                    <div class="col-auto">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 small">Show:</label>
+                            <select class="form-select form-select-sm" style="width: auto;" @onchange="ChangePageSize">
+                                @foreach (var size in pageSizeOptions)
+                                {
+                                    <option value="@size" selected="@(pagination.PageSize == size)">@size</option>
+                                }
+                            </select>
+                            <span class="small text-muted">records per page</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -282,6 +304,51 @@
                     </table>
                 </div>
             </div>
+            @if (pagedResult != null && pagedResult.TotalPages > 1)
+            {
+                <div class="card-footer">
+                    <nav aria-label="Patient pagination">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item @(pagedResult.HasPreviousPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="() => GoToPage(1)" disabled="@(!pagedResult.HasPreviousPage)">
+                                    First
+                                </button>
+                            </li>
+                            <li class="page-item @(pagedResult.HasPreviousPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="() => GoToPage(pagedResult.PageNumber - 1)" disabled="@(!pagedResult.HasPreviousPage)">
+                                    Previous
+                                </button>
+                            </li>
+                            
+                            @{
+                                int startPage = Math.Max(1, pagedResult.PageNumber - 2);
+                                int endPage = Math.Min(pagedResult.TotalPages, pagedResult.PageNumber + 2);
+                            }
+                            
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                var pageNumber = i;
+                                <li class="page-item @(pagedResult.PageNumber == pageNumber ? "active" : "")">
+                                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">
+                                        @pageNumber
+                                    </button>
+                                </li>
+                            }
+                            
+                            <li class="page-item @(pagedResult.HasNextPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="() => GoToPage(pagedResult.PageNumber + 1)" disabled="@(!pagedResult.HasNextPage)">
+                                    Next
+                                </button>
+                            </li>
+                            <li class="page-item @(pagedResult.HasNextPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="() => GoToPage(pagedResult.TotalPages)" disabled="@(!pagedResult.HasNextPage)">
+                                    Last
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
         </div>
     }
     else if (!loading)
@@ -302,6 +369,7 @@
 
 @code {
     private IEnumerable<PatientTrackingDto>? patients;
+    private PagedResult<PatientTrackingDto>? pagedResult;
     private int awaitingCounsellingCount = 0;
     private int awaitingTreatmentCount = 0;
     private int followUpDueCount = 0;
@@ -310,6 +378,10 @@
     private bool loading = true;
     private string? sortColumn = null;
     private bool sortAscending = true;
+    
+    // Pagination properties
+    private PaginationParameters pagination = new() { PageNumber = 1, PageSize = 25 };
+    private readonly int[] pageSizeOptions = { 25, 50, 100 };
 
     protected override async Task OnInitializedAsync()
     {
@@ -324,22 +396,25 @@
         {
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                patients = await PatientService.SearchPatientsAsync(searchTerm);
+                pagedResult = await PatientService.SearchPatientsPagedAsync(searchTerm, pagination);
+                patients = pagedResult.Items;
                 currentFilter = $"Search results for '{searchTerm}'";
             }
             else
             {
-                patients = await PatientService.GetAllPatientsAsync();
+                pagedResult = await PatientService.GetPagedPatientsAsync(pagination);
+                patients = pagedResult.Items;
                 currentFilter = "";
             }
             
-            // Apply sorting after loading data
+            // Apply client-side sorting if needed
             ApplySorting();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading patients: {ex.Message}");
             patients = new List<PatientTrackingDto>();
+            pagedResult = new PagedResult<PatientTrackingDto>();
         }
         finally
         {
@@ -367,6 +442,7 @@
 
     private async Task SearchPatients()
     {
+        pagination.PageNumber = 1; // Reset to first page on new search
         await LoadPatients();
     }
 
@@ -381,9 +457,11 @@
     private async Task ShowAwaitingCounselling()
     {
         loading = true;
+        pagination.PageNumber = 1;
         try
         {
-            patients = await PatientService.GetAwaitingCounsellingAsync();
+            pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination);
+            patients = pagedResult.Items;
             currentFilter = "Patients Awaiting Counselling";
             searchTerm = "";
             ApplySorting();
@@ -397,9 +475,11 @@
     private async Task ShowAwaitingTreatment()
     {
         loading = true;
+        pagination.PageNumber = 1;
         try
         {
-            patients = await PatientService.GetAwaitingTreatmentAsync();
+            pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination);
+            patients = pagedResult.Items;
             currentFilter = "Patients Awaiting Treatment";
             searchTerm = "";
             ApplySorting();
@@ -413,9 +493,11 @@
     private async Task ShowFollowUpDue()
     {
         loading = true;
+        pagination.PageNumber = 1;
         try
         {
-            patients = await PatientService.GetFollowUpDueAsync();
+            pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination);
+            patients = pagedResult.Items;
             currentFilter = "Patients with Follow-up Due";
             searchTerm = "";
             ApplySorting();
@@ -432,6 +514,7 @@
         currentFilter = "";
         sortColumn = null;
         sortAscending = true;
+        pagination.PageNumber = 1;
         await LoadPatients();
     }
 
@@ -471,6 +554,23 @@
                 : patients.OrderByDescending(p => p.NextAppointment ?? DateTime.MinValue),
             _ => patients
         };
+    }
+
+    // Pagination methods
+    private async Task GoToPage(int pageNumber)
+    {
+        pagination.PageNumber = pageNumber;
+        await LoadPatients();
+    }
+
+    private async Task ChangePageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newPageSize))
+        {
+            pagination.PageSize = newPageSize;
+            pagination.PageNumber = 1; // Reset to first page
+            await LoadPatients();
+        }
     }
 
     private void AddNewPatient()

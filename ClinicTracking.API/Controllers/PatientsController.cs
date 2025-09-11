@@ -39,6 +39,31 @@ public class PatientsController : ControllerBase
         }
     }
 
+    [HttpGet("paged")]
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetPaged([FromQuery] PaginationParameters pagination)
+    {
+        try
+        {
+            var (patients, totalCount) = await _unitOfWork.Patients.GetPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var patientDtos = patients.Select(MapToDto);
+            
+            var result = new PagedResult<PatientTrackingDto>
+            {
+                Items = patientDtos,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving paged patients");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PatientTrackingDto>> GetById(Guid id)
     {
@@ -95,6 +120,31 @@ public class PatientsController : ControllerBase
         }
     }
 
+    [HttpGet("awaiting-counselling/paged")]
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingCounsellingPaged([FromQuery] PaginationParameters pagination)
+    {
+        try
+        {
+            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingCounsellingPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var patientDtos = patients.Select(MapToDto);
+            
+            var result = new PagedResult<PatientTrackingDto>
+            {
+                Items = patientDtos,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving paged patients awaiting counselling");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
     [HttpGet("awaiting-treatment")]
     public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetAwaitingTreatment()
     {
@@ -107,6 +157,31 @@ public class PatientsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving patients awaiting treatment");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpGet("awaiting-treatment/paged")]
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingTreatmentPaged([FromQuery] PaginationParameters pagination)
+    {
+        try
+        {
+            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingTreatmentPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var patientDtos = patients.Select(MapToDto);
+            
+            var result = new PagedResult<PatientTrackingDto>
+            {
+                Items = patientDtos,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving paged patients awaiting treatment");
             return StatusCode(500, "Internal server error");
         }
     }
@@ -127,6 +202,31 @@ public class PatientsController : ControllerBase
         }
     }
 
+    [HttpGet("follow-up-due/paged")]
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetFollowUpDuePaged([FromQuery] PaginationParameters pagination)
+    {
+        try
+        {
+            var (patients, totalCount) = await _unitOfWork.Patients.GetFollowUpDuePagedAsync(pagination.PageNumber, pagination.PageSize);
+            var patientDtos = patients.Select(MapToDto);
+            
+            var result = new PagedResult<PatientTrackingDto>
+            {
+                Items = patientDtos,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving paged patients with follow-up due");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
     [HttpGet("search/{searchTerm}")]
     public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> Search(string searchTerm)
     {
@@ -139,6 +239,31 @@ public class PatientsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching patients with term: {SearchTerm}", searchTerm);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpGet("search/{searchTerm}/paged")]
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> SearchPaged(string searchTerm, [FromQuery] PaginationParameters pagination)
+    {
+        try
+        {
+            var (patients, totalCount) = await _unitOfWork.Patients.SearchPagedAsync(searchTerm, pagination.PageNumber, pagination.PageSize);
+            var patientDtos = patients.Select(MapToDto);
+            
+            var result = new PagedResult<PatientTrackingDto>
+            {
+                Items = patientDtos,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching paged patients with term: {SearchTerm}", searchTerm);
             return StatusCode(500, "Internal server error");
         }
     }
