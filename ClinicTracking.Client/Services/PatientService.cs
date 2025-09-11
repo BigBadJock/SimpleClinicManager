@@ -5,12 +5,17 @@ namespace ClinicTracking.Client.Services;
 public interface IPatientService
 {
     Task<IEnumerable<PatientTrackingDto>> GetAllPatientsAsync();
+    Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination);
     Task<PatientTrackingDto?> GetPatientByIdAsync(Guid id);
     Task<PatientTrackingDto?> GetPatientByMRNAsync(string mrn);
     Task<IEnumerable<PatientTrackingDto>> GetAwaitingCounsellingAsync();
+    Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination);
     Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync();
+    Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination);
     Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync();
+    Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination);
     Task<IEnumerable<PatientTrackingDto>> SearchPatientsAsync(string searchTerm);
+    Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination);
     Task<PatientTrackingDto?> CreatePatientAsync(CreatePatientTrackingDto patient);
     Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, UpdatePatientTrackingDto patient);
     Task<bool> DeletePatientAsync(Guid id);
@@ -34,6 +39,13 @@ public class PatientService : IPatientService
         return response ?? new List<PatientTrackingDto>();
     }
 
+    public async Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination)
+    {
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/paged{queryString}");
+        return response ?? new PagedResult<PatientTrackingDto>();
+    }
+
     public async Task<PatientTrackingDto?> GetPatientByIdAsync(Guid id)
     {
         return await _httpClient.GetFromJsonAsync<PatientTrackingDto>($"api/patients/{id}");
@@ -50,10 +62,24 @@ public class PatientService : IPatientService
         return response ?? new List<PatientTrackingDto>();
     }
 
+    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination)
+    {
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/awaiting-counselling/paged{queryString}");
+        return response ?? new PagedResult<PatientTrackingDto>();
+    }
+
     public async Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync()
     {
         var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>("api/patients/awaiting-treatment");
         return response ?? new List<PatientTrackingDto>();
+    }
+
+    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination)
+    {
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/awaiting-treatment/paged{queryString}");
+        return response ?? new PagedResult<PatientTrackingDto>();
     }
 
     public async Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync()
@@ -62,10 +88,24 @@ public class PatientService : IPatientService
         return response ?? new List<PatientTrackingDto>();
     }
 
+    public async Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination)
+    {
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/follow-up-due/paged{queryString}");
+        return response ?? new PagedResult<PatientTrackingDto>();
+    }
+
     public async Task<IEnumerable<PatientTrackingDto>> SearchPatientsAsync(string searchTerm)
     {
         var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>($"api/patients/search/{Uri.EscapeDataString(searchTerm)}");
         return response ?? new List<PatientTrackingDto>();
+    }
+
+    public async Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination)
+    {
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/search/{Uri.EscapeDataString(searchTerm)}/paged{queryString}");
+        return response ?? new PagedResult<PatientTrackingDto>();
     }
 
     public async Task<PatientTrackingDto?> CreatePatientAsync(CreatePatientTrackingDto patient)
