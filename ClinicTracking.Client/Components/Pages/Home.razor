@@ -385,6 +385,7 @@
     private int followUpDueCount = 0;
     private string searchTerm = "";
     private string currentFilter = "";
+    private string activeFilterType = ""; // Tracks the active filter: "awaiting-counselling", "awaiting-treatment", "follow-up-due", or "" for all/search
     private bool loading = true;
     private string? sortColumn = null;
     private bool sortAscending = true;
@@ -404,11 +405,30 @@
         loading = true;
         try
         {
+            // Load data based on the active filter type
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 pagedResult = await PatientService.SearchPatientsPagedAsync(searchTerm, pagination);
                 patients = pagedResult.Items;
                 currentFilter = $"Search results for '{searchTerm}'";
+            }
+            else if (activeFilterType == "awaiting-counselling")
+            {
+                pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination);
+                patients = pagedResult.Items;
+                currentFilter = "Patients Awaiting Counselling";
+            }
+            else if (activeFilterType == "awaiting-treatment")
+            {
+                pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination);
+                patients = pagedResult.Items;
+                currentFilter = "Patients Awaiting Treatment";
+            }
+            else if (activeFilterType == "follow-up-due")
+            {
+                pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination);
+                patients = pagedResult.Items;
+                currentFilter = "Patients with Follow-up Due";
             }
             else
             {
@@ -453,6 +473,7 @@
     private async Task SearchPatients()
     {
         pagination.PageNumber = 1; // Reset to first page on new search
+        activeFilterType = ""; // Clear filter type when searching
         await LoadPatients();
     }
 
@@ -468,12 +489,13 @@
     {
         loading = true;
         pagination.PageNumber = 1;
+        searchTerm = "";
+        activeFilterType = "awaiting-counselling";
         try
         {
             pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination);
             patients = pagedResult.Items;
             currentFilter = "Patients Awaiting Counselling";
-            searchTerm = "";
             ApplySorting();
         }
         finally
@@ -486,12 +508,13 @@
     {
         loading = true;
         pagination.PageNumber = 1;
+        searchTerm = "";
+        activeFilterType = "awaiting-treatment";
         try
         {
             pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination);
             patients = pagedResult.Items;
             currentFilter = "Patients Awaiting Treatment";
-            searchTerm = "";
             ApplySorting();
         }
         finally
@@ -504,12 +527,13 @@
     {
         loading = true;
         pagination.PageNumber = 1;
+        searchTerm = "";
+        activeFilterType = "follow-up-due";
         try
         {
             pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination);
             patients = pagedResult.Items;
             currentFilter = "Patients with Follow-up Due";
-            searchTerm = "";
             ApplySorting();
         }
         finally
@@ -522,6 +546,7 @@
     {
         searchTerm = "";
         currentFilter = "";
+        activeFilterType = "";
         sortColumn = null;
         sortAscending = true;
         pagination.PageNumber = 1;
@@ -642,12 +667,8 @@
 
     private string? GetCurrentFilter()
     {
-        if (currentFilter.Contains("Awaiting Counselling"))
-            return "awaiting-counselling";
-        else if (currentFilter.Contains("Awaiting Treatment"))
-            return "awaiting-treatment";
-        else if (currentFilter.Contains("Follow-up Due"))
-            return "follow-up-due";
+        if (!string.IsNullOrEmpty(activeFilterType))
+            return activeFilterType;
         
         return null;
     }
