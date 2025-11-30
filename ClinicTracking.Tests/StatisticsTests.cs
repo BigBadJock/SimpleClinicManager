@@ -95,6 +95,59 @@ public class StatisticsTests
     }
 
     [Fact]
+    public void TreatmentTypeDto_WithUnspecifiedName_ShouldBeValid()
+    {
+        // Arrange & Act - Test that "Unspecified" category can be created
+        var unspecifiedTreatment = new TreatmentTypeDto
+        {
+            TreatmentName = "Unspecified",
+            PatientCount = 10,
+            Percentage = 20.0
+        };
+
+        // Assert
+        Assert.Equal("Unspecified", unspecifiedTreatment.TreatmentName);
+        Assert.Equal(10, unspecifiedTreatment.PatientCount);
+        Assert.Equal(20.0, unspecifiedTreatment.Percentage);
+    }
+
+    [Fact]
+    public void TreatmentTypeDto_ListShouldSupportSorting()
+    {
+        // Arrange
+        var treatmentTypes = new List<TreatmentTypeDto>
+        {
+            new TreatmentTypeDto { TreatmentName = "Chemotherapy", PatientCount = 30, Percentage = 30.0 },
+            new TreatmentTypeDto { TreatmentName = "Radiation", PatientCount = 50, Percentage = 50.0 },
+            new TreatmentTypeDto { TreatmentName = "Unspecified", PatientCount = 20, Percentage = 20.0 }
+        };
+
+        // Act - Sort by count descending
+        var sortedByCount = treatmentTypes.OrderByDescending(t => t.PatientCount).ToList();
+
+        // Assert
+        Assert.Equal("Radiation", sortedByCount[0].TreatmentName);
+        Assert.Equal("Chemotherapy", sortedByCount[1].TreatmentName);
+        Assert.Equal("Unspecified", sortedByCount[2].TreatmentName);
+
+        // Act - Sort by name ascending
+        var sortedByName = treatmentTypes.OrderBy(t => t.TreatmentName).ToList();
+
+        // Assert
+        Assert.Equal("Chemotherapy", sortedByName[0].TreatmentName);
+        Assert.Equal("Radiation", sortedByName[1].TreatmentName);
+        Assert.Equal("Unspecified", sortedByName[2].TreatmentName);
+
+        // Act - Sort by percentage descending
+        var sortedByPercentage = treatmentTypes.OrderByDescending(t => t.Percentage).ToList();
+
+        // Assert
+        Assert.Equal("Radiation", sortedByPercentage[0].TreatmentName);
+        Assert.Equal("Chemotherapy", sortedByPercentage[1].TreatmentName);
+        Assert.Equal("Unspecified", sortedByPercentage[2].TreatmentName);
+    }
+
+    [Fact]
     public void DemographicsDto_LanguagePercentages_ShouldSumToOneHundred()
     {
         // Arrange & Act

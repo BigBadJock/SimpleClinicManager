@@ -643,18 +643,19 @@ public class PatientsController : ControllerBase
 
     private List<TreatmentTypeDto> CalculateTreatmentTypes(List<PatientTracking> patients)
     {
-        // Filter to patients that actually have a TreatmentId assigned
-        var patientsWithTreatment = patients
-            .Where(p => p.TreatmentId.HasValue)
-            .ToList();
-
-        var totalCount = patientsWithTreatment.Count;
+        var totalCount = patients.Count;
         if (totalCount == 0)
         {
-            return new List<TreatmentTypeDto>(); // nothing to report
+            return new List<TreatmentTypeDto>();
         }
 
-        // Group by TreatmentId (source of truth now)
+        // Separate patients with and without TreatmentId
+        var patientsWithTreatment = patients.Where(p => p.TreatmentId.HasValue).ToList();
+        var patientsWithoutTreatment = patients.Where(p => !p.TreatmentId.HasValue).ToList();
+
+        var result = new List<TreatmentTypeDto>();
+
+        // Group patients with TreatmentId by their TreatmentId
         var grouped = patientsWithTreatment
             .GroupBy(p => p.TreatmentId!.Value)
             .Select(g =>
@@ -663,8 +664,7 @@ public class PatientsController : ControllerBase
                 var first = g.First();
                 var name = first.TreatmentLookup?.Name;
 
-                // If navigation not loaded (null), attempt to fall back to the TreatmentName
-                // already exposed via DTO mapping; if still null use a placeholder.
+                // If navigation not loaded (null), use a placeholder
                 if (string.IsNullOrWhiteSpace(name))
                 {
                     name = "Unknown / Unloaded";
@@ -676,16 +676,29 @@ public class PatientsController : ControllerBase
                 {
                     TreatmentName = name,
                     PatientCount = count,
-                    Percentage = totalCount > 0
-                        ? (double)count / totalCount * 100d
-                        : 0d
+                    Percentage = (double)count / totalCount * 100d
                 };
             })
+            .ToList();
+
+        result.AddRange(grouped);
+
+        // Add "Unspecified" category for patients without TreatmentId
+        if (patientsWithoutTreatment.Count > 0)
+        {
+            result.Add(new TreatmentTypeDto
+            {
+                TreatmentName = "Unspecified",
+                PatientCount = patientsWithoutTreatment.Count,
+                Percentage = (double)patientsWithoutTreatment.Count / totalCount * 100d
+            });
+        }
+
+        // Sort by count descending, then by name
+        return result
             .OrderByDescending(x => x.PatientCount)
             .ThenBy(x => x.TreatmentName)
             .ToList();
-
-        return grouped;
     }
 
     private List<CounsellorMetricDto> CalculateCounsellorMetrics(List<PatientTracking> patients)

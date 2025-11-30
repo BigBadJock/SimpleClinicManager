@@ -118,32 +118,69 @@ window.renderTreatmentTypesChart = function(data) {
     
     try {
         const ctx = document.getElementById('treatmentTypesChart').getContext('2d');
+        
+        // Generate colors for each treatment type matching existing chart styles
+        const colors = [
+            'rgba(54, 162, 235, 0.8)',   // Blue
+            'rgba(255, 99, 132, 0.8)',   // Red
+            'rgba(75, 192, 192, 0.8)',   // Teal
+            'rgba(255, 206, 86, 0.8)',   // Yellow
+            'rgba(153, 102, 255, 0.8)',  // Purple
+            'rgba(255, 159, 64, 0.8)',   // Orange
+            'rgba(199, 199, 199, 0.8)',  // Grey
+            'rgba(83, 102, 255, 0.8)',   // Indigo
+            'rgba(255, 99, 255, 0.8)',   // Pink
+            'rgba(99, 255, 132, 0.8)'    // Green
+        ];
+        
+        const borderColors = [
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(199, 199, 199, 1)',
+            'rgba(83, 102, 255, 1)',
+            'rgba(255, 99, 255, 1)',
+            'rgba(99, 255, 132, 1)'
+        ];
+        
+        // Assign colors to each data point, cycling if more than 10 categories
+        const backgroundColors = data.map((_, i) => colors[i % colors.length]);
+        const borderColorArray = data.map((_, i) => borderColors[i % borderColors.length]);
+        
         chartInstances['treatmentTypesChart'] = new Chart(ctx, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: data.map(d => d.treatmentName),
                 datasets: [{
-                    label: 'Number of Patients',
                     data: data.map(d => d.patientCount),
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColorArray,
                     borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                },
                 plugins: {
                     legend: {
-                        display: false
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const percentage = data[context.dataIndex]?.percentage?.toFixed(1) || 0;
+                                return `${label}: ${value} patients (${percentage}%)`;
+                            }
+                        }
                     }
                 }
             }

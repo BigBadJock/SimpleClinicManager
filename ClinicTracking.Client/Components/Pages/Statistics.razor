@@ -195,16 +195,46 @@
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-striped">
+                            <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Treatment Name</th>
-                                        <th>Count</th>
-                                        <th>Percentage</th>
+                                        <th class="sortable-header @(treatmentSortColumn == "name" ? "sorted" : "")" @onclick="@(() => SortTreatmentTypes("name"))" style="cursor: pointer;">
+                                            Treatment Name
+                                            @if (treatmentSortColumn == "name")
+                                            {
+                                                <i class="fas fa-sort-@(treatmentSortDescending ? "down" : "up") ms-1"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-sort ms-1 text-muted"></i>
+                                            }
+                                        </th>
+                                        <th class="sortable-header @(treatmentSortColumn == "count" ? "sorted" : "")" @onclick="@(() => SortTreatmentTypes("count"))" style="cursor: pointer;">
+                                            Count
+                                            @if (treatmentSortColumn == "count")
+                                            {
+                                                <i class="fas fa-sort-@(treatmentSortDescending ? "down" : "up") ms-1"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-sort ms-1 text-muted"></i>
+                                            }
+                                        </th>
+                                        <th class="sortable-header @(treatmentSortColumn == "percentage" ? "sorted" : "")" @onclick="@(() => SortTreatmentTypes("percentage"))" style="cursor: pointer;">
+                                            Percentage
+                                            @if (treatmentSortColumn == "percentage")
+                                            {
+                                                <i class="fas fa-sort-@(treatmentSortDescending ? "down" : "up") ms-1"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-sort ms-1 text-muted"></i>
+                                            }
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var treatment in statistics.TreatmentTypes)
+                                    @foreach (var treatment in GetSortedTreatmentTypes())
                                     {
                                         <tr>
                                             <td>@treatment.TreatmentName</td>
@@ -224,7 +254,7 @@
                         <h5 class="mb-0">Treatment Types Chart</h5>
                     </div>
                     <div class="card-body">
-                        <canvas id="treatmentTypesChart" width="400" height="200"></canvas>
+                        <canvas id="treatmentTypesChart" width="400" height="300"></canvas>
                     </div>
                 </div>
             </div>
@@ -318,7 +348,11 @@
     private bool loading = true;
     private string? errorMessage;
     private string? filterValidationMessage;
-    private bool chartsRendered = false;   // NEW
+    private bool chartsRendered = false;
+    
+    // Treatment Types table sorting
+    private string treatmentSortColumn = "count";
+    private bool treatmentSortDescending = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -393,6 +427,43 @@
 
     private string FormatMinMax(int? min, int? max) =>
         (min.HasValue && max.HasValue) ? $"{min}/{max} days" : "N/A";
+
+    private void SortTreatmentTypes(string column)
+    {
+        if (treatmentSortColumn == column)
+        {
+            treatmentSortDescending = !treatmentSortDescending;
+        }
+        else
+        {
+            treatmentSortColumn = column;
+            treatmentSortDescending = column != "name"; // Default to ascending for name, descending for others
+        }
+    }
+
+    private IEnumerable<TreatmentTypeDto> GetSortedTreatmentTypes()
+    {
+        if (statistics?.TreatmentTypes == null)
+            return Enumerable.Empty<TreatmentTypeDto>();
+
+        var items = statistics.TreatmentTypes.AsEnumerable();
+
+        items = treatmentSortColumn switch
+        {
+            "name" => treatmentSortDescending 
+                ? items.OrderByDescending(x => x.TreatmentName) 
+                : items.OrderBy(x => x.TreatmentName),
+            "count" => treatmentSortDescending 
+                ? items.OrderByDescending(x => x.PatientCount) 
+                : items.OrderBy(x => x.PatientCount),
+            "percentage" => treatmentSortDescending 
+                ? items.OrderByDescending(x => x.Percentage) 
+                : items.OrderBy(x => x.Percentage),
+            _ => items
+        };
+
+        return items;
+    }
 
     private async Task RenderCharts()
     {
