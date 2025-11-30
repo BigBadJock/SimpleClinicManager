@@ -489,8 +489,8 @@
     {
         loading = true;
         pagination.PageNumber = 1;
-        activeFilterType = "awaiting-counselling";
         searchTerm = "";
+        activeFilterType = "awaiting-counselling";
         try
         {
             pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination);
@@ -508,8 +508,8 @@
     {
         loading = true;
         pagination.PageNumber = 1;
-        activeFilterType = "awaiting-treatment";
         searchTerm = "";
+        activeFilterType = "awaiting-treatment";
         try
         {
             pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination);
@@ -527,8 +527,8 @@
     {
         loading = true;
         pagination.PageNumber = 1;
-        activeFilterType = "follow-up-due";
         searchTerm = "";
+        activeFilterType = "follow-up-due";
         try
         {
             pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination);
