@@ -63,6 +63,19 @@ public class TreatmentTypeSortingTests
     }
 
     [Fact]
+    public void GetTreatmentTypeDisplayValue_BothAdjuvantAndPalliative_ReturnsAdjuvant()
+    {
+        // Arrange - When both flags are true, Adjuvant takes priority (matching existing UI behavior)
+        var patient = new PatientTrackingDto { Adjuvant = true, Palliative = true };
+
+        // Act
+        var result = GetTreatmentTypeDisplayValue(patient);
+
+        // Assert - Adjuvant is checked first, so it takes precedence
+        Assert.Equal("Adjuvant", result);
+    }
+
+    [Fact]
     public void SortByTreatmentType_Ascending_SortsCorrectly()
     {
         // Arrange
