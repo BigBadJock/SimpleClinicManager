@@ -298,11 +298,11 @@ public class PatientsController : ControllerBase
             var filteredPatients = allPatients.AsQueryable();
             if (filter.StartDate.HasValue)
             {
-                filteredPatients = filteredPatients.Where(p => p.ReferralDate >= filter.StartDate.Value);
+                filteredPatients = filteredPatients.Where(p => p.CounsellingDate >= filter.StartDate.Value);
             }
             if (filter.EndDate.HasValue)
             {
-                filteredPatients = filteredPatients.Where(p => p.ReferralDate <= filter.EndDate.Value);
+                filteredPatients = filteredPatients.Where(p => p.CounsellingDate <= filter.EndDate.Value);
             }
 
             var patientsList = filteredPatients.ToList();
