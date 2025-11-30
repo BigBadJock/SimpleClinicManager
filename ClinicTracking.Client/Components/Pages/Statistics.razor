@@ -204,10 +204,10 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var treatment in statistics.TreatmentTypes)
+                                    @foreach (var treatment in statistics.TreatmentTypes ?? new List<TreatmentTypeDto>())
                                     {
                                         <tr>
-                                            <td>@treatment.TreatmentName</td>
+                                            <td>@(string.IsNullOrEmpty(treatment.TreatmentName) ? "Unspecified" : treatment.TreatmentName)</td>
                                             <td>@treatment.PatientCount</td>
                                             <td>@treatment.Percentage.ToString("F1")%</td>
                                         </tr>
@@ -398,14 +398,21 @@
     {
         if (statistics == null) return;
 
-        await JSRuntime.InvokeVoidAsync("renderWaitTimeChart", statistics.WaitTimeDistribution);
-        await JSRuntime.InvokeVoidAsync("renderTreatmentTimeChart", statistics.TreatmentTimeDistribution);
-        await JSRuntime.InvokeVoidAsync("renderTreatmentTypesChart", statistics.TreatmentTypes);
-        await JSRuntime.InvokeVoidAsync("renderCounsellorChart", statistics.CounsellorMetrics);
-        await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics);
-        await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics);
-        await JSRuntime.InvokeVoidAsync("renderTrendsChart", statistics.ReferralTrends);
-
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("renderWaitTimeChart", statistics.WaitTimeDistribution ?? new List<TimeDistributionDto>());
+            await JSRuntime.InvokeVoidAsync("renderTreatmentTimeChart", statistics.TreatmentTimeDistribution ?? new List<TimeDistributionDto>());
+            await JSRuntime.InvokeVoidAsync("renderTreatmentTypesChart", statistics.TreatmentTypes ?? new List<TreatmentTypeDto>());
+            await JSRuntime.InvokeVoidAsync("renderCounsellorChart", statistics.CounsellorMetrics ?? new List<CounsellorMetricDto>());
+            await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics ?? new DemographicsDto());
+            await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics ?? new DemographicsDto());
+            await JSRuntime.InvokeVoidAsync("renderTrendsChart", statistics.ReferralTrends ?? new List<TrendDataDto>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering charts: {ex.Message}");
+            // Charts will gracefully fail without breaking the page
+        }
     }
 
     private async Task PrintReport()
