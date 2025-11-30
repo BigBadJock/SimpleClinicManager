@@ -182,7 +182,17 @@
                                     }
                                 </th>
                                 <th>Treatment</th>
-                                <th>Treatment Type</th>
+                                <th class="sortable-header" @onclick='() => ToggleSort("TreatmentType")'>
+                                    Treatment Type
+                                    @if (sortColumn == "TreatmentType")
+                                    {
+                                        <i class="fas @(sortAscending ? "fa-sort-up" : "fa-sort-down") ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sort ms-1 text-muted"></i>
+                                    }
+                                </th>
                                 <th>Wait Time (days)</th>
                                 <th>Treatment Time (days)</th>
                                 <th class="sortable-header" @onclick='() => ToggleSort("NextAppointment")'>
@@ -552,8 +562,18 @@
             "NextAppointment" => sortAscending
                 ? patients.OrderBy(p => p.NextAppointment ?? DateTime.MaxValue)
                 : patients.OrderByDescending(p => p.NextAppointment ?? DateTime.MinValue),
+            "TreatmentType" => sortAscending
+                ? patients.OrderBy(p => GetTreatmentTypeDisplayValue(p), StringComparer.OrdinalIgnoreCase)
+                : patients.OrderByDescending(p => GetTreatmentTypeDisplayValue(p), StringComparer.OrdinalIgnoreCase),
             _ => patients
         };
+    }
+
+    private static string GetTreatmentTypeDisplayValue(PatientTrackingDto patient)
+    {
+        if (patient.Adjuvant) return "Adjuvant";
+        if (patient.Palliative) return "Palliative";
+        return "Not specified";
     }
 
     // Pagination methods
