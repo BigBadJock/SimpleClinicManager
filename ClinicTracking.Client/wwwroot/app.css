@@ -49,3 +49,22 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+/* Sortable table header styles */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.sortable-header i.fa-sort {
+    opacity: 0.5;
+}
+
+.sortable-header:hover i.fa-sort {
+    opacity: 0.8;
+}
