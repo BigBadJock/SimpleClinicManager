@@ -646,18 +646,31 @@ public class PatientsController : ControllerBase
 
     private List<TreatmentTypeDto> CalculateTreatmentTypes(List<PatientTracking> patients)
     {
-        // Filter to patients that actually have a TreatmentId assigned
-        var patientsWithTreatment = patients
-            .Where(p => p.TreatmentId.HasValue)
-            .ToList();
-
-        var totalCount = patientsWithTreatment.Count;
+        var totalCount = patients.Count;
         if (totalCount == 0)
         {
             return new List<TreatmentTypeDto>(); // nothing to report
         }
 
-        // Group by TreatmentId (source of truth now)
+        var result = new List<TreatmentTypeDto>();
+
+        // Count patients without a TreatmentId (null/unspecified)
+        var patientsWithoutTreatment = patients.Where(p => !p.TreatmentId.HasValue).ToList();
+        if (patientsWithoutTreatment.Count > 0)
+        {
+            result.Add(new TreatmentTypeDto
+            {
+                TreatmentName = "Unspecified",
+                PatientCount = patientsWithoutTreatment.Count,
+                Percentage = (double)patientsWithoutTreatment.Count / totalCount * 100d
+            });
+        }
+
+        // Group patients with TreatmentId by TreatmentId
+        var patientsWithTreatment = patients
+            .Where(p => p.TreatmentId.HasValue)
+            .ToList();
+
         var grouped = patientsWithTreatment
             .GroupBy(p => p.TreatmentId!.Value)
             .Select(g =>
@@ -670,7 +683,7 @@ public class PatientsController : ControllerBase
                 // already exposed via DTO mapping; if still null use a placeholder.
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    name = "Unknown / Unloaded";
+                    name = "Unknown";
                 }
 
                 var count = g.Count();
@@ -679,16 +692,17 @@ public class PatientsController : ControllerBase
                 {
                     TreatmentName = name,
                     PatientCount = count,
-                    Percentage = totalCount > 0
-                        ? (double)count / totalCount * 100d
-                        : 0d
+                    Percentage = (double)count / totalCount * 100d
                 };
             })
+            .ToList();
+
+        result.AddRange(grouped);
+
+        return result
             .OrderByDescending(x => x.PatientCount)
             .ThenBy(x => x.TreatmentName)
             .ToList();
-
-        return grouped;
     }
 
     private List<CareTypeDto> CalculateCareTypes(List<PatientTracking> patients)
@@ -753,9 +767,32 @@ public class PatientsController : ControllerBase
 
     private List<CounsellorMetricDto> CalculateCounsellorMetrics(List<PatientTracking> patients)
     {
-        var counsellorGroups = patients
-            .Where(p => p.CounsellingDate.HasValue && !string.IsNullOrEmpty(p.CreatedBy))
-            .GroupBy(p => p.CreatedBy)
+        // Get all patients with counselling date
+        var counselledPatients = patients.Where(p => p.CounsellingDate.HasValue).ToList();
+        
+        var result = new List<CounsellorMetricDto>();
+        
+        // Handle patients with null/empty CreatedBy as "Unspecified"
+        var unspecifiedGroup = counselledPatients.Where(p => string.IsNullOrEmpty(p.CreatedBy)).ToList();
+        if (unspecifiedGroup.Any())
+        {
+            var waitTimes = unspecifiedGroup
+                .Where(p => p.WaitTimeReferralToCounselling.HasValue)
+                .Select(p => p.WaitTimeReferralToCounselling!.Value)
+                .ToList();
+
+            result.Add(new CounsellorMetricDto
+            {
+                CounsellorName = "Unspecified",
+                PatientCount = unspecifiedGroup.Count,
+                AverageWaitTime = waitTimes.Any() ? waitTimes.Average() : (double?)null
+            });
+        }
+
+        // Group patients with non-empty CreatedBy
+        var counsellorGroups = counselledPatients
+            .Where(p => !string.IsNullOrEmpty(p.CreatedBy))
+            .GroupBy(p => p.CreatedBy!)
             .Select(g => new CounsellorMetricDto
             {
                 CounsellorName = g.Key,
@@ -768,10 +805,13 @@ public class PatientsController : ControllerBase
                                    .Average()
                                  : (double?)null
             })
-            .OrderByDescending(c => c.PatientCount)
             .ToList();
 
-        return counsellorGroups;
+        result.AddRange(counsellorGroups);
+
+        return result
+            .OrderByDescending(c => c.PatientCount)
+            .ToList();
     }
 
     private DemographicsDto CalculateDemographics(List<PatientTracking> patients)
