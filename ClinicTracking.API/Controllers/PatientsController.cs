@@ -699,29 +699,42 @@ public class PatientsController : ControllerBase
             return new List<CareTypeDto>();
         }
 
-        var adjuvantCount = patients.Count(p => p.Adjuvant);
-        var palliativeCount = patients.Count(p => p.Palliative);
+        // Handle mutually exclusive categories to ensure percentages sum to 100%
+        // Priority: Both -> Adjuvant Only -> Palliative Only -> Unspecified
+        var bothCount = patients.Count(p => p.Adjuvant && p.Palliative);
+        var adjuvantOnlyCount = patients.Count(p => p.Adjuvant && !p.Palliative);
+        var palliativeOnlyCount = patients.Count(p => !p.Adjuvant && p.Palliative);
         var unspecifiedCount = patients.Count(p => !p.Adjuvant && !p.Palliative);
 
         var careTypes = new List<CareTypeDto>();
 
-        if (adjuvantCount > 0)
+        if (adjuvantOnlyCount > 0)
         {
             careTypes.Add(new CareTypeDto
             {
                 CareType = "Adjuvant",
-                PatientCount = adjuvantCount,
-                Percentage = (double)adjuvantCount / totalCount * 100
+                PatientCount = adjuvantOnlyCount,
+                Percentage = (double)adjuvantOnlyCount / totalCount * 100
             });
         }
 
-        if (palliativeCount > 0)
+        if (palliativeOnlyCount > 0)
         {
             careTypes.Add(new CareTypeDto
             {
                 CareType = "Palliative",
-                PatientCount = palliativeCount,
-                Percentage = (double)palliativeCount / totalCount * 100
+                PatientCount = palliativeOnlyCount,
+                Percentage = (double)palliativeOnlyCount / totalCount * 100
+            });
+        }
+
+        if (bothCount > 0)
+        {
+            careTypes.Add(new CareTypeDto
+            {
+                CareType = "Adjuvant & Palliative",
+                PatientCount = bothCount,
+                Percentage = (double)bothCount / totalCount * 100
             });
         }
 
