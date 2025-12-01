@@ -230,6 +230,68 @@
             </div>
         </div>
 
+        <!-- Care Types (Adjuvant vs Palliative) -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Care Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sortable">
+                                <thead>
+                                    <tr>
+                                        <th style="cursor: pointer;" @onclick='() => SortCareTypes("careType")'>
+                                            Care Type
+                                            @if (careTypeSortColumn == "careType")
+                                            {
+                                                <i class="fas @(careTypeSortAscending ? "fa-sort-up" : "fa-sort-down")"></i>
+                                            }
+                                        </th>
+                                        <th style="cursor: pointer;" @onclick='() => SortCareTypes("count")'>
+                                            Count
+                                            @if (careTypeSortColumn == "count")
+                                            {
+                                                <i class="fas @(careTypeSortAscending ? "fa-sort-up" : "fa-sort-down")"></i>
+                                            }
+                                        </th>
+                                        <th style="cursor: pointer;" @onclick='() => SortCareTypes("percentage")'>
+                                            Percentage
+                                            @if (careTypeSortColumn == "percentage")
+                                            {
+                                                <i class="fas @(careTypeSortAscending ? "fa-sort-up" : "fa-sort-down")"></i>
+                                            }
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var careType in GetSortedCareTypes())
+                                    {
+                                        <tr>
+                                            <td>@careType.CareType</td>
+                                            <td>@careType.PatientCount</td>
+                                            <td>@careType.Percentage.ToString("F1")%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Care Types Chart</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="careTypesChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Counsellor Metrics and Demographics -->
         <div class="row mb-4">
             <div class="col-md-6">
@@ -319,6 +381,8 @@
     private string? errorMessage;
     private string? filterValidationMessage;
     private bool chartsRendered = false;   // NEW
+    private string careTypeSortColumn = "count";
+    private bool careTypeSortAscending = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -401,6 +465,7 @@
         await JSRuntime.InvokeVoidAsync("renderWaitTimeChart", statistics.WaitTimeDistribution);
         await JSRuntime.InvokeVoidAsync("renderTreatmentTimeChart", statistics.TreatmentTimeDistribution);
         await JSRuntime.InvokeVoidAsync("renderTreatmentTypesChart", statistics.TreatmentTypes);
+        await JSRuntime.InvokeVoidAsync("renderCareTypesChart", statistics.CareTypes);
         await JSRuntime.InvokeVoidAsync("renderCounsellorChart", statistics.CounsellorMetrics);
         await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics);
         await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics);
@@ -412,5 +477,38 @@
     {
         // Call JavaScript print function
         await JSRuntime.InvokeVoidAsync("printPage");
+    }
+
+    private void SortCareTypes(string column)
+    {
+        if (careTypeSortColumn == column)
+        {
+            careTypeSortAscending = !careTypeSortAscending;
+        }
+        else
+        {
+            careTypeSortColumn = column;
+            careTypeSortAscending = true;
+        }
+    }
+
+    private IEnumerable<CareTypeDto> GetSortedCareTypes()
+    {
+        if (statistics?.CareTypes == null)
+            return Enumerable.Empty<CareTypeDto>();
+
+        return careTypeSortColumn switch
+        {
+            "careType" => careTypeSortAscending
+                ? statistics.CareTypes.OrderBy(c => c.CareType)
+                : statistics.CareTypes.OrderByDescending(c => c.CareType),
+            "count" => careTypeSortAscending
+                ? statistics.CareTypes.OrderBy(c => c.PatientCount)
+                : statistics.CareTypes.OrderByDescending(c => c.PatientCount),
+            "percentage" => careTypeSortAscending
+                ? statistics.CareTypes.OrderBy(c => c.Percentage)
+                : statistics.CareTypes.OrderByDescending(c => c.Percentage),
+            _ => statistics.CareTypes
+        };
     }
 }

@@ -6,6 +6,7 @@ public class StatisticsDto
     public List<TimeDistributionDto> WaitTimeDistribution { get; set; } = new();
     public List<TimeDistributionDto> TreatmentTimeDistribution { get; set; } = new();
     public List<TreatmentTypeDto> TreatmentTypes { get; set; } = new();
+    public List<CareTypeDto> CareTypes { get; set; } = new();
     public List<CounsellorMetricDto> CounsellorMetrics { get; set; } = new();
     public DemographicsDto Demographics { get; set; } = new();
     public OperationalMetricsDto OperationalMetrics { get; set; } = new();
@@ -85,4 +86,11 @@ public class StatisticsFilterDto
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+}
+
+public class CareTypeDto
+{
+    public string CareType { get; set; } = null!;
+    public int PatientCount { get; set; }
+    public double Percentage { get; set; }
 }

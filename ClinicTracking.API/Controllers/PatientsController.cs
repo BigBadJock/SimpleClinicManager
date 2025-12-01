@@ -543,6 +543,9 @@ public class PatientsController : ControllerBase
         // Treatment Types
         statistics.TreatmentTypes = CalculateTreatmentTypes(patients);
 
+        // Care Types (Adjuvant/Palliative)
+        statistics.CareTypes = CalculateCareTypes(patients);
+
         // Counsellor Metrics (simplified - using CreatedBy as proxy for counsellor)
         statistics.CounsellorMetrics = CalculateCounsellorMetrics(patients);
 
@@ -686,6 +689,53 @@ public class PatientsController : ControllerBase
             .ToList();
 
         return grouped;
+    }
+
+    private List<CareTypeDto> CalculateCareTypes(List<PatientTracking> patients)
+    {
+        var totalCount = patients.Count;
+        if (totalCount == 0)
+        {
+            return new List<CareTypeDto>();
+        }
+
+        var adjuvantCount = patients.Count(p => p.Adjuvant);
+        var palliativeCount = patients.Count(p => p.Palliative);
+        var unspecifiedCount = patients.Count(p => !p.Adjuvant && !p.Palliative);
+
+        var careTypes = new List<CareTypeDto>();
+
+        if (adjuvantCount > 0)
+        {
+            careTypes.Add(new CareTypeDto
+            {
+                CareType = "Adjuvant",
+                PatientCount = adjuvantCount,
+                Percentage = (double)adjuvantCount / totalCount * 100
+            });
+        }
+
+        if (palliativeCount > 0)
+        {
+            careTypes.Add(new CareTypeDto
+            {
+                CareType = "Palliative",
+                PatientCount = palliativeCount,
+                Percentage = (double)palliativeCount / totalCount * 100
+            });
+        }
+
+        if (unspecifiedCount > 0)
+        {
+            careTypes.Add(new CareTypeDto
+            {
+                CareType = "Unspecified",
+                PatientCount = unspecifiedCount,
+                Percentage = (double)unspecifiedCount / totalCount * 100
+            });
+        }
+
+        return careTypes.OrderByDescending(c => c.PatientCount).ToList();
     }
 
     private List<CounsellorMetricDto> CalculateCounsellorMetrics(List<PatientTracking> patients)

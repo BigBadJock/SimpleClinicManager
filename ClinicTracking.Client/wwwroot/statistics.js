@@ -294,3 +294,54 @@ window.renderTrendsChart = function(data) {
     });
 };
 
+window.renderCareTypesChart = function(data) {
+    destroyChart('careTypesChart');
+    
+    if (!data || data.length === 0) return;
+    
+    const ctx = document.getElementById('careTypesChart').getContext('2d');
+    
+    // Define colors for care types
+    const backgroundColors = [
+        'rgba(46, 204, 113, 0.8)',   // Green for Adjuvant
+        'rgba(155, 89, 182, 0.8)',    // Purple for Palliative
+        'rgba(149, 165, 166, 0.8)'    // Gray for Unspecified
+    ];
+    const borderColors = [
+        'rgba(46, 204, 113, 1)',
+        'rgba(155, 89, 182, 1)',
+        'rgba(149, 165, 166, 1)'
+    ];
+    
+    chartInstances['careTypesChart'] = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data.map(d => d.careType),
+            datasets: [{
+                data: data.map(d => d.patientCount),
+                backgroundColor: backgroundColors.slice(0, data.length),
+                borderColor: borderColors.slice(0, data.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const percentage = data[context.dataIndex].percentage.toFixed(1);
+                            return `${context.label}: ${value} patients (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+};
+
