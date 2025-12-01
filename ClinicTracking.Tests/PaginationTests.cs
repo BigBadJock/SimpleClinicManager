@@ -142,6 +142,96 @@ public class PaginationTests : IDisposable
         Assert.True(result.HasNextPage); // Page 2 of 4 has next
     }
 
+    [Fact]
+    public async Task GetPagedAsync_WithHideWithoutReferralDate_FiltersPatients()
+    {
+        // Arrange - Create test patients with some having referral date and some without
+        var patientsWithReferral = CreateTestPatients(10); // All have referral date
+        var patientsWithoutReferral = new List<PatientTracking>();
+        for (int i = 0; i < 5; i++)
+        {
+            patientsWithoutReferral.Add(new PatientTracking
+            {
+                Id = Guid.NewGuid(),
+                MRN = $"NORF{i:000}",
+                Name = $"No Referral Patient {i}",
+                ReferralDate = null, // No referral date
+                CreatedBy = "Test",
+                CreatedOn = DateTime.UtcNow
+            });
+        }
+
+        foreach (var patient in patientsWithReferral)
+        {
+            await _patientRepository.AddAsync(patient);
+        }
+        foreach (var patient in patientsWithoutReferral)
+        {
+            await _patientRepository.AddAsync(patient);
+        }
+        await _context.SaveChangesAsync();
+
+        // Act - Get all patients (filter disabled)
+        var (allItems, allTotalCount) = await _patientRepository.GetPagedAsync(1, 100, hideWithoutReferralDate: false);
+
+        // Act - Get only patients with referral date (filter enabled)
+        var (filteredItems, filteredTotalCount) = await _patientRepository.GetPagedAsync(1, 100, hideWithoutReferralDate: true);
+
+        // Assert
+        Assert.Equal(15, allTotalCount); // All 15 patients
+        Assert.Equal(10, filteredTotalCount); // Only 10 patients with referral date
+        Assert.All(filteredItems, p => Assert.NotNull(p.ReferralDate));
+    }
+
+    [Fact]
+    public async Task GetAwaitingCounsellingPagedAsync_WithHideWithoutReferralDate_FiltersPatients()
+    {
+        // Arrange - Create test patients awaiting counselling
+        var patientsWithReferral = new List<PatientTracking>();
+        var patientsWithoutReferral = new List<PatientTracking>();
+        
+        for (int i = 0; i < 5; i++)
+        {
+            patientsWithReferral.Add(new PatientTracking
+            {
+                Id = Guid.NewGuid(),
+                MRN = $"WRF{i:000}",
+                Name = $"With Referral {i}",
+                ReferralDate = DateTime.Now.AddDays(-i),
+                CounsellingDate = null, // Awaiting counselling
+                CreatedBy = "Test",
+                CreatedOn = DateTime.UtcNow
+            });
+            patientsWithoutReferral.Add(new PatientTracking
+            {
+                Id = Guid.NewGuid(),
+                MRN = $"NRFC{i:000}",
+                Name = $"No Referral {i}",
+                ReferralDate = null, // No referral date
+                CounsellingDate = null, // Awaiting counselling
+                CreatedBy = "Test",
+                CreatedOn = DateTime.UtcNow
+            });
+        }
+
+        foreach (var patient in patientsWithReferral.Concat(patientsWithoutReferral))
+        {
+            await _patientRepository.AddAsync(patient);
+        }
+        await _context.SaveChangesAsync();
+
+        // Act - Get all awaiting counselling (filter disabled)
+        var (allItems, allTotalCount) = await _patientRepository.GetAwaitingCounsellingPagedAsync(1, 100, hideWithoutReferralDate: false);
+
+        // Act - Get only awaiting counselling with referral date (filter enabled)
+        var (filteredItems, filteredTotalCount) = await _patientRepository.GetAwaitingCounsellingPagedAsync(1, 100, hideWithoutReferralDate: true);
+
+        // Assert
+        Assert.Equal(10, allTotalCount); // All 10 patients awaiting counselling
+        Assert.Equal(5, filteredTotalCount); // Only 5 patients with referral date
+        Assert.All(filteredItems, p => Assert.NotNull(p.ReferralDate));
+    }
+
     private List<PatientTracking> CreateTestPatients(int count)
     {
         var patients = new List<PatientTracking>();

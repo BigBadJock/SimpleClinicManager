@@ -5,17 +5,17 @@ namespace ClinicTracking.Client.Services;
 public interface IPatientService
 {
     Task<IEnumerable<PatientTrackingDto>> GetAllPatientsAsync();
-    Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination);
+    Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false);
     Task<PatientTrackingDto?> GetPatientByIdAsync(Guid id);
     Task<PatientTrackingDto?> GetPatientByMRNAsync(string mrn);
-    Task<IEnumerable<PatientTrackingDto>> GetAwaitingCounsellingAsync();
-    Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination);
-    Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync();
-    Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination);
-    Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync();
-    Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination);
+    Task<IEnumerable<PatientTrackingDto>> GetAwaitingCounsellingAsync(bool hideWithoutReferralDate = false);
+    Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false);
+    Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync(bool hideWithoutReferralDate = false);
+    Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false);
+    Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync(bool hideWithoutReferralDate = false);
+    Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false);
     Task<IEnumerable<PatientTrackingDto>> SearchPatientsAsync(string searchTerm);
-    Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination);
+    Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination, bool hideWithoutReferralDate = false);
     Task<PatientTrackingDto?> CreatePatientAsync(CreatePatientTrackingDto patient);
     Task<PatientTrackingDto?> UpdatePatientAsync(Guid id, UpdatePatientTrackingDto patient);
     Task<bool> DeletePatientAsync(Guid id);
@@ -39,9 +39,9 @@ public class PatientService : IPatientService
         return response ?? new List<PatientTrackingDto>();
     }
 
-    public async Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination)
+    public async Task<PagedResult<PatientTrackingDto>> GetPagedPatientsAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false)
     {
-        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}&hideWithoutReferralDate={hideWithoutReferralDate}";
         var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/paged{queryString}");
         return response ?? new PagedResult<PatientTrackingDto>();
     }
@@ -56,41 +56,44 @@ public class PatientService : IPatientService
         return await _httpClient.GetFromJsonAsync<PatientTrackingDto>($"api/patients/mrn/{mrn}");
     }
 
-    public async Task<IEnumerable<PatientTrackingDto>> GetAwaitingCounsellingAsync()
+    public async Task<IEnumerable<PatientTrackingDto>> GetAwaitingCounsellingAsync(bool hideWithoutReferralDate = false)
     {
-        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>("api/patients/awaiting-counselling");
+        var queryString = hideWithoutReferralDate ? "?hideWithoutReferralDate=true" : "";
+        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>($"api/patients/awaiting-counselling{queryString}");
         return response ?? new List<PatientTrackingDto>();
     }
 
-    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination)
+    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingCounsellingPagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false)
     {
-        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}&hideWithoutReferralDate={hideWithoutReferralDate}";
         var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/awaiting-counselling/paged{queryString}");
         return response ?? new PagedResult<PatientTrackingDto>();
     }
 
-    public async Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync()
+    public async Task<IEnumerable<PatientTrackingDto>> GetAwaitingTreatmentAsync(bool hideWithoutReferralDate = false)
     {
-        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>("api/patients/awaiting-treatment");
+        var queryString = hideWithoutReferralDate ? "?hideWithoutReferralDate=true" : "";
+        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>($"api/patients/awaiting-treatment{queryString}");
         return response ?? new List<PatientTrackingDto>();
     }
 
-    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination)
+    public async Task<PagedResult<PatientTrackingDto>> GetAwaitingTreatmentPagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false)
     {
-        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}&hideWithoutReferralDate={hideWithoutReferralDate}";
         var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/awaiting-treatment/paged{queryString}");
         return response ?? new PagedResult<PatientTrackingDto>();
     }
 
-    public async Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync()
+    public async Task<IEnumerable<PatientTrackingDto>> GetFollowUpDueAsync(bool hideWithoutReferralDate = false)
     {
-        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>("api/patients/follow-up-due");
+        var queryString = hideWithoutReferralDate ? "?hideWithoutReferralDate=true" : "";
+        var response = await _httpClient.GetFromJsonAsync<IEnumerable<PatientTrackingDto>>($"api/patients/follow-up-due{queryString}");
         return response ?? new List<PatientTrackingDto>();
     }
 
-    public async Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination)
+    public async Task<PagedResult<PatientTrackingDto>> GetFollowUpDuePagedAsync(PaginationParameters pagination, bool hideWithoutReferralDate = false)
     {
-        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}&hideWithoutReferralDate={hideWithoutReferralDate}";
         var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/follow-up-due/paged{queryString}");
         return response ?? new PagedResult<PatientTrackingDto>();
     }
@@ -101,9 +104,9 @@ public class PatientService : IPatientService
         return response ?? new List<PatientTrackingDto>();
     }
 
-    public async Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination)
+    public async Task<PagedResult<PatientTrackingDto>> SearchPatientsPagedAsync(string searchTerm, PaginationParameters pagination, bool hideWithoutReferralDate = false)
     {
-        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}";
+        var queryString = $"?PageNumber={pagination.PageNumber}&PageSize={pagination.PageSize}&hideWithoutReferralDate={hideWithoutReferralDate}";
         var response = await _httpClient.GetFromJsonAsync<PagedResult<PatientTrackingDto>>($"api/patients/search/{Uri.EscapeDataString(searchTerm)}/paged{queryString}");
         return response ?? new PagedResult<PatientTrackingDto>();
     }

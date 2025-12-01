@@ -86,6 +86,7 @@ public class StatisticsFilterDto
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+    public bool HideWithoutReferralDate { get; set; }
 }
 
 public class CareTypeDto

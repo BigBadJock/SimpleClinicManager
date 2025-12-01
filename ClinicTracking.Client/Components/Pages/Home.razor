@@ -58,7 +58,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-md-5">
+        <div class="col-md-4">
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Search by patient name or MRN..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
                 <button class="btn btn-primary" @onclick="SearchPatients">
@@ -66,12 +66,20 @@
                 </button>
             </div>
         </div>
+        <div class="col-md-3 d-flex align-items-center">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="hideWithoutReferralDate" @bind="hideWithoutReferralDate" @bind:after="OnHideWithoutReferralDateChanged" />
+                <label class="form-check-label" for="hideWithoutReferralDate">
+                    Hide patients without referral date
+                </label>
+            </div>
+        </div>
         <div class="col-md-2">
             <button class="btn btn-outline-secondary w-100" @onclick="ClearFilter" title="Clear all filters and sorting">
                 <i class="fas fa-times-circle me-2"></i>Clear Filters
             </button>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <div class="dropdown">
                 <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-download me-2"></i>Export
@@ -86,7 +94,7 @@
                 </ul>
             </div>
         </div>
-        <div class="col-md-3 text-end">
+        <div class="col-md-2 text-end">
             <button class="btn btn-success" @onclick="AddNewPatient">
                 <i class="fas fa-plus"></i> Add New Patient
             </button>
@@ -389,6 +397,7 @@
     private bool loading = true;
     private string? sortColumn = null;
     private bool sortAscending = true;
+    private bool hideWithoutReferralDate = false;
     
     // Pagination properties
     private PaginationParameters pagination = new() { PageNumber = 1, PageSize = 10 };
@@ -408,31 +417,31 @@
             // Load data based on the active filter type
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                pagedResult = await PatientService.SearchPatientsPagedAsync(searchTerm, pagination);
+                pagedResult = await PatientService.SearchPatientsPagedAsync(searchTerm, pagination, hideWithoutReferralDate);
                 patients = pagedResult.Items;
                 currentFilter = $"Search results for '{searchTerm}'";
             }
             else if (activeFilterType == "awaiting-counselling")
             {
-                pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination);
+                pagedResult = await PatientService.GetAwaitingCounsellingPagedAsync(pagination, hideWithoutReferralDate);
                 patients = pagedResult.Items;
                 currentFilter = "Patients Awaiting Counselling";
             }
             else if (activeFilterType == "awaiting-treatment")
             {
-                pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination);
+                pagedResult = await PatientService.GetAwaitingTreatmentPagedAsync(pagination, hideWithoutReferralDate);
                 patients = pagedResult.Items;
                 currentFilter = "Patients Awaiting Treatment";
             }
             else if (activeFilterType == "follow-up-due")
             {
-                pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination);
+                pagedResult = await PatientService.GetFollowUpDuePagedAsync(pagination, hideWithoutReferralDate);
                 patients = pagedResult.Items;
                 currentFilter = "Patients with Follow-up Due";
             }
             else
             {
-                pagedResult = await PatientService.GetPagedPatientsAsync(pagination);
+                pagedResult = await PatientService.GetPagedPatientsAsync(pagination, hideWithoutReferralDate);
                 patients = pagedResult.Items;
                 currentFilter = "";
             }
@@ -456,9 +465,9 @@
     {
         try
         {
-            var awaitingCounselling = await PatientService.GetAwaitingCounsellingAsync();
-            var awaitingTreatment = await PatientService.GetAwaitingTreatmentAsync();
-            var followUpDue = await PatientService.GetFollowUpDueAsync();
+            var awaitingCounselling = await PatientService.GetAwaitingCounsellingAsync(hideWithoutReferralDate);
+            var awaitingTreatment = await PatientService.GetAwaitingTreatmentAsync(hideWithoutReferralDate);
+            var followUpDue = await PatientService.GetFollowUpDueAsync(hideWithoutReferralDate);
 
             awaitingCounsellingCount = awaitingCounselling.Count();
             awaitingTreatmentCount = awaitingTreatment.Count();
@@ -549,8 +558,17 @@
         activeFilterType = "";
         sortColumn = null;
         sortAscending = true;
+        hideWithoutReferralDate = false;
         pagination.PageNumber = 1;
         await LoadPatients();
+        await LoadCounts();
+    }
+
+    private async Task OnHideWithoutReferralDateChanged()
+    {
+        pagination.PageNumber = 1;
+        await LoadPatients();
+        await LoadCounts();
     }
 
     private void ToggleSort(string columnName)
