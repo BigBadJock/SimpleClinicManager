@@ -468,7 +468,7 @@
             await JSRuntime.InvokeVoidAsync("renderWaitTimeChart", statistics.WaitTimeDistribution ?? new List<TimeDistributionDto>());
             await JSRuntime.InvokeVoidAsync("renderTreatmentTimeChart", statistics.TreatmentTimeDistribution ?? new List<TimeDistributionDto>());
             await JSRuntime.InvokeVoidAsync("renderTreatmentTypesChart", statistics.TreatmentTypes ?? new List<TreatmentTypeDto>());
-            await JSRuntime.InvokeVoidAsync("renderCareTypesChart", statistics.CareTypes ?? new List<CareTypesDto>());
+            await JSRuntime.InvokeVoidAsync("renderCareTypesChart", statistics.CareTypes ?? new List<CareTypeDto>());
             await JSRuntime.InvokeVoidAsync("renderCounsellorChart", statistics.CounsellorMetrics ?? new List<CounsellorMetricDto>());
             await JSRuntime.InvokeVoidAsync("renderLanguageChart", statistics.Demographics ?? new DemographicsDto());
             await JSRuntime.InvokeVoidAsync("renderSurveyChart", statistics.Demographics ?? new DemographicsDto());
