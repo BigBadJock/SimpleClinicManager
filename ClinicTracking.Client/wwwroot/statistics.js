@@ -21,12 +21,21 @@ function hideCanvasIfChartFails(chartId) {
         showFallback(chartId);
         return true;
     }
+    // Check if canvas element exists
+    const canvas = document.getElementById(chartId);
+    if (!canvas) {
+        console.warn(`Chart canvas element '${chartId}' not found`);
+        showFallback(chartId);
+        return true;
+    }
     return false;
 }
 
 // Utility function to safely handle null/undefined data
 function safeArray(data) {
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    // Filter out null/undefined entries from the array
+    return data.filter(item => item !== null && item !== undefined);
 }
 
 // Utility function to safely get a value with a default
