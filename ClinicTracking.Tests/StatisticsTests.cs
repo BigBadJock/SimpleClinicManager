@@ -116,6 +116,44 @@ public class StatisticsTests
     }
 
     [Fact]
+    public void CareTypeDto_Properties_ShouldHaveCorrectValues()
+    {
+        // Arrange & Act
+        var careType = new CareTypeDto
+        {
+            CareType = "Adjuvant",
+            PatientCount = 30,
+            Percentage = 60.0
+        };
+
+        // Assert
+        Assert.Equal("Adjuvant", careType.CareType);
+        Assert.Equal(30, careType.PatientCount);
+        Assert.Equal(60.0, careType.Percentage);
+    }
+
+    [Fact]
+    public void CareTypeDto_DefaultValues_ShouldBeCorrect()
+    {
+        // Arrange & Act
+        var careType = new CareTypeDto();
+
+        // Assert
+        Assert.Equal(0, careType.PatientCount);
+        Assert.Equal(0.0, careType.Percentage);
+    }
+
+    [Fact]
+    public void StatisticsDto_CareTypes_ShouldBeInitializedAsEmptyList()
+    {
+        // Arrange & Act
+        var statistics = new StatisticsDto();
+
+        // Assert
+        Assert.NotNull(statistics.CareTypes);
+        Assert.Empty(statistics.CareTypes);
+    }
+      
     public void StatisticsDto_WithNullCollections_ShouldInitializeToEmptyLists()
     {
         // Arrange & Act

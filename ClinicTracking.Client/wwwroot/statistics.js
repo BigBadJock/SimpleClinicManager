@@ -354,3 +354,53 @@ window.renderTrendsChart = function(data) {
     }
 };
 
+window.renderCareTypesChart = function(data) {
+    destroyChart('careTypesChart');
+    
+    if (!data || data.length === 0) return;
+    
+    const ctx = document.getElementById('careTypesChart').getContext('2d');
+    
+    // Define colors for care types - map by care type name for consistency
+    const colorMap = {
+        'Adjuvant': { bg: 'rgba(46, 204, 113, 0.8)', border: 'rgba(46, 204, 113, 1)' },           // Green
+        'Palliative': { bg: 'rgba(155, 89, 182, 0.8)', border: 'rgba(155, 89, 182, 1)' },         // Purple
+        'Adjuvant & Palliative': { bg: 'rgba(52, 152, 219, 0.8)', border: 'rgba(52, 152, 219, 1)' }, // Blue
+        'Unspecified': { bg: 'rgba(149, 165, 166, 0.8)', border: 'rgba(149, 165, 166, 1)' }       // Gray
+    };
+    
+    const backgroundColors = data.map(d => colorMap[d.careType]?.bg || 'rgba(189, 195, 199, 0.8)');
+    const borderColors = data.map(d => colorMap[d.careType]?.border || 'rgba(189, 195, 199, 1)');
+    
+    chartInstances['careTypesChart'] = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data.map(d => d.careType),
+            datasets: [{
+                data: data.map(d => d.patientCount),
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const percentage = data[context.dataIndex].percentage.toFixed(1);
+                            return `${context.label}: ${value} patients (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+};
+
