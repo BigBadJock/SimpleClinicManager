@@ -16,7 +16,42 @@ function showFallback(chartId) {
     if (fallback) fallback.style.display = 'block';
 }
 
+// Waits for the canvas element to be present in the DOM using requestAnimationFrame
+// Returns a Promise that resolves with the canvas element or null if not found after retries
+function waitForCanvas(chartId, maxRetries = 3, currentRetry = 0) {
+    return new Promise((resolve) => {
+        requestAnimationFrame(() => {
+            const canvas = document.getElementById(chartId);
+            if (canvas) {
+                resolve(canvas);
+            } else if (currentRetry < maxRetries) {
+                // Retry after another animation frame
+                waitForCanvas(chartId, maxRetries, currentRetry + 1).then(resolve);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
 // Returns the canvas element if valid, or null if chart should not be rendered
+// This version waits for the DOM to be ready using requestAnimationFrame
+async function getValidCanvasAsync(chartId) {
+    if (typeof Chart === 'undefined') {
+        showFallback(chartId);
+        return null;
+    }
+    // Wait for canvas element to be present in the DOM
+    const canvas = await waitForCanvas(chartId);
+    if (!canvas) {
+        console.warn(`Chart canvas element '${chartId}' not found`);
+        showFallback(chartId);
+        return null;
+    }
+    return canvas;
+}
+
+// Synchronous version for backwards compatibility - checks DOM immediately
 function getValidCanvas(chartId) {
     if (typeof Chart === 'undefined') {
         showFallback(chartId);
@@ -52,8 +87,8 @@ function safeString(value, defaultValue) {
     return value;
 }
 
-window.renderWaitTimeChart = function(data) {
-    const canvas = getValidCanvas('waitTimeChart');
+window.renderWaitTimeChart = async function(data) {
+    const canvas = await getValidCanvasAsync('waitTimeChart');
     if (!canvas) return;
     
     destroyChart('waitTimeChart');
@@ -97,8 +132,8 @@ window.renderWaitTimeChart = function(data) {
     }
 };
 
-window.renderTreatmentTimeChart = function(data) {
-    const canvas = getValidCanvas('treatmentTimeChart');
+window.renderTreatmentTimeChart = async function(data) {
+    const canvas = await getValidCanvasAsync('treatmentTimeChart');
     if (!canvas) return;
     
     destroyChart('treatmentTimeChart');
@@ -142,8 +177,8 @@ window.renderTreatmentTimeChart = function(data) {
     }
 };
 
-window.renderTreatmentTypesChart = function(data) {
-    const canvas = getValidCanvas('treatmentTypesChart');
+window.renderTreatmentTypesChart = async function(data) {
+    const canvas = await getValidCanvasAsync('treatmentTypesChart');
     if (!canvas) return;
     
     destroyChart('treatmentTypesChart');
@@ -187,8 +222,8 @@ window.renderTreatmentTypesChart = function(data) {
     }
 };
 
-window.renderCounsellorChart = function(data) {
-    const canvas = getValidCanvas('counsellorChart');
+window.renderCounsellorChart = async function(data) {
+    const canvas = await getValidCanvasAsync('counsellorChart');
     if (!canvas) return;
     
     destroyChart('counsellorChart');
@@ -232,8 +267,8 @@ window.renderCounsellorChart = function(data) {
     }
 };
 
-window.renderLanguageChart = function(demographics) {
-    const canvas = getValidCanvas('languageChart');
+window.renderLanguageChart = async function(demographics) {
+    const canvas = await getValidCanvasAsync('languageChart');
     if (!canvas) return;
     
     destroyChart('languageChart');
@@ -278,8 +313,8 @@ window.renderLanguageChart = function(demographics) {
     }
 };
 
-window.renderSurveyChart = function(demographics) {
-    const canvas = getValidCanvas('surveyChart');
+window.renderSurveyChart = async function(demographics) {
+    const canvas = await getValidCanvasAsync('surveyChart');
     if (!canvas) return;
     
     destroyChart('surveyChart');
@@ -324,8 +359,8 @@ window.renderSurveyChart = function(demographics) {
     }
 };
 
-window.renderTrendsChart = function(data) {
-    const canvas = getValidCanvas('trendsChart');
+window.renderTrendsChart = async function(data) {
+    const canvas = await getValidCanvasAsync('trendsChart');
     if (!canvas) return;
     
     destroyChart('trendsChart');
@@ -371,8 +406,8 @@ window.renderTrendsChart = function(data) {
     }
 };
 
-window.renderCareTypesChart = function(data) {
-    const canvas = getValidCanvas('careTypesChart');
+window.renderCareTypesChart = async function(data) {
+    const canvas = await getValidCanvasAsync('careTypesChart');
     if (!canvas) return;
     
     destroyChart('careTypesChart');
