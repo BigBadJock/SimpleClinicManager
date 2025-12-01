@@ -140,18 +140,18 @@ public class StatisticsTests
     }
 
     [Fact]
-    public void TreatmentTypeDto_WithNullTreatmentName_ShouldAllowNull()
+    public void TreatmentTypeDto_WithUnspecifiedTreatmentName_ShouldBeValid()
     {
-        // Arrange & Act - TreatmentName can be null in some edge cases
+        // Arrange & Act - When treatment is not assigned, "Unspecified" is used
         var treatmentType = new TreatmentTypeDto
         {
-            TreatmentName = null!,
+            TreatmentName = "Unspecified",
             PatientCount = 10,
             Percentage = 25.0
         };
 
-        // Assert - Should not throw, null should be allowed (will be displayed as "Unspecified" in UI)
-        Assert.Null(treatmentType.TreatmentName);
+        // Assert - "Unspecified" is the expected value for null/missing treatments
+        Assert.Equal("Unspecified", treatmentType.TreatmentName);
         Assert.Equal(10, treatmentType.PatientCount);
         Assert.Equal(25.0, treatmentType.Percentage);
     }
