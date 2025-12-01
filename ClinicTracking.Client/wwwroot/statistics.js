@@ -16,19 +16,20 @@ function showFallback(chartId) {
     if (fallback) fallback.style.display = 'block';
 }
 
-function hideCanvasIfChartFails(chartId) {
+// Returns the canvas element if valid, or null if chart should not be rendered
+function getValidCanvas(chartId) {
     if (typeof Chart === 'undefined') {
         showFallback(chartId);
-        return true;
+        return null;
     }
     // Check if canvas element exists
     const canvas = document.getElementById(chartId);
     if (!canvas) {
         console.warn(`Chart canvas element '${chartId}' not found`);
         showFallback(chartId);
-        return true;
+        return null;
     }
-    return false;
+    return canvas;
 }
 
 // Utility function to safely handle null/undefined data
@@ -52,13 +53,14 @@ function safeString(value, defaultValue) {
 }
 
 window.renderWaitTimeChart = function(data) {
-    if (hideCanvasIfChartFails('waitTimeChart')) return;
+    const canvas = getValidCanvas('waitTimeChart');
+    if (!canvas) return;
     
     destroyChart('waitTimeChart');
     
     try {
         const safeData = safeArray(data);
-        const ctx = document.getElementById('waitTimeChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['waitTimeChart'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -96,13 +98,14 @@ window.renderWaitTimeChart = function(data) {
 };
 
 window.renderTreatmentTimeChart = function(data) {
-    if (hideCanvasIfChartFails('treatmentTimeChart')) return;
+    const canvas = getValidCanvas('treatmentTimeChart');
+    if (!canvas) return;
     
     destroyChart('treatmentTimeChart');
     
     try {
         const safeData = safeArray(data);
-        const ctx = document.getElementById('treatmentTimeChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['treatmentTimeChart'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -140,13 +143,14 @@ window.renderTreatmentTimeChart = function(data) {
 };
 
 window.renderTreatmentTypesChart = function(data) {
-    if (hideCanvasIfChartFails('treatmentTypesChart')) return;
+    const canvas = getValidCanvas('treatmentTypesChart');
+    if (!canvas) return;
     
     destroyChart('treatmentTypesChart');
     
     try {
         const safeData = safeArray(data);
-        const ctx = document.getElementById('treatmentTypesChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['treatmentTypesChart'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -184,13 +188,14 @@ window.renderTreatmentTypesChart = function(data) {
 };
 
 window.renderCounsellorChart = function(data) {
-    if (hideCanvasIfChartFails('counsellorChart')) return;
+    const canvas = getValidCanvas('counsellorChart');
+    if (!canvas) return;
     
     destroyChart('counsellorChart');
     
     try {
         const safeData = safeArray(data);
-        const ctx = document.getElementById('counsellorChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['counsellorChart'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -228,14 +233,15 @@ window.renderCounsellorChart = function(data) {
 };
 
 window.renderLanguageChart = function(demographics) {
-    if (hideCanvasIfChartFails('languageChart')) return;
+    const canvas = getValidCanvas('languageChart');
+    if (!canvas) return;
     
     destroyChart('languageChart');
     
     try {
         // Handle null demographics object
         const safeDemographics = demographics || {};
-        const ctx = document.getElementById('languageChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['languageChart'] = new Chart(ctx, {
             type: 'pie',
             data: {
@@ -273,14 +279,15 @@ window.renderLanguageChart = function(demographics) {
 };
 
 window.renderSurveyChart = function(demographics) {
-    if (hideCanvasIfChartFails('surveyChart')) return;
+    const canvas = getValidCanvas('surveyChart');
+    if (!canvas) return;
     
     destroyChart('surveyChart');
     
     try {
         // Handle null demographics object
         const safeDemographics = demographics || {};
-        const ctx = document.getElementById('surveyChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['surveyChart'] = new Chart(ctx, {
             type: 'pie',
             data: {
@@ -318,13 +325,14 @@ window.renderSurveyChart = function(demographics) {
 };
 
 window.renderTrendsChart = function(data) {
-    if (hideCanvasIfChartFails('trendsChart')) return;
+    const canvas = getValidCanvas('trendsChart');
+    if (!canvas) return;
     
     destroyChart('trendsChart');
     
     try {
         const safeData = safeArray(data);
-        const ctx = document.getElementById('trendsChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         chartInstances['trendsChart'] = new Chart(ctx, {
             type: 'line',
             data: {
