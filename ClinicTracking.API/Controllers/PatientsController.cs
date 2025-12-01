@@ -40,11 +40,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("paged")]
-    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetPaged([FromQuery] PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetPaged([FromQuery] PaginationParameters pagination, [FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var (patients, totalCount) = await _unitOfWork.Patients.GetPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var (patients, totalCount) = await _unitOfWork.Patients.GetPagedAsync(pagination.PageNumber, pagination.PageSize, hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             
             var result = new PagedResult<PatientTrackingDto>
@@ -105,11 +105,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("awaiting-counselling")]
-    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetAwaitingCounselling()
+    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetAwaitingCounselling([FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var patients = await _unitOfWork.Patients.GetAwaitingCounsellingAsync();
+            var patients = await _unitOfWork.Patients.GetAwaitingCounsellingAsync(hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             return Ok(patientDtos);
         }
@@ -121,11 +121,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("awaiting-counselling/paged")]
-    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingCounsellingPaged([FromQuery] PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingCounsellingPaged([FromQuery] PaginationParameters pagination, [FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingCounsellingPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingCounsellingPagedAsync(pagination.PageNumber, pagination.PageSize, hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             
             var result = new PagedResult<PatientTrackingDto>
@@ -146,11 +146,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("awaiting-treatment")]
-    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetAwaitingTreatment()
+    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetAwaitingTreatment([FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var patients = await _unitOfWork.Patients.GetAwaitingTreatmentAsync();
+            var patients = await _unitOfWork.Patients.GetAwaitingTreatmentAsync(hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             return Ok(patientDtos);
         }
@@ -162,11 +162,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("awaiting-treatment/paged")]
-    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingTreatmentPaged([FromQuery] PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetAwaitingTreatmentPaged([FromQuery] PaginationParameters pagination, [FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingTreatmentPagedAsync(pagination.PageNumber, pagination.PageSize);
+            var (patients, totalCount) = await _unitOfWork.Patients.GetAwaitingTreatmentPagedAsync(pagination.PageNumber, pagination.PageSize, hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             
             var result = new PagedResult<PatientTrackingDto>
@@ -187,11 +187,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("follow-up-due")]
-    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetFollowUpDue()
+    public async Task<ActionResult<IEnumerable<PatientTrackingDto>>> GetFollowUpDue([FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var patients = await _unitOfWork.Patients.GetFollowUpDueAsync();
+            var patients = await _unitOfWork.Patients.GetFollowUpDueAsync(hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             return Ok(patientDtos);
         }
@@ -203,11 +203,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("follow-up-due/paged")]
-    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetFollowUpDuePaged([FromQuery] PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> GetFollowUpDuePaged([FromQuery] PaginationParameters pagination, [FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var (patients, totalCount) = await _unitOfWork.Patients.GetFollowUpDuePagedAsync(pagination.PageNumber, pagination.PageSize);
+            var (patients, totalCount) = await _unitOfWork.Patients.GetFollowUpDuePagedAsync(pagination.PageNumber, pagination.PageSize, hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             
             var result = new PagedResult<PatientTrackingDto>
@@ -244,11 +244,11 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("search/{searchTerm}/paged")]
-    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> SearchPaged(string searchTerm, [FromQuery] PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<PatientTrackingDto>>> SearchPaged(string searchTerm, [FromQuery] PaginationParameters pagination, [FromQuery] bool hideWithoutReferralDate = false)
     {
         try
         {
-            var (patients, totalCount) = await _unitOfWork.Patients.SearchPagedAsync(searchTerm, pagination.PageNumber, pagination.PageSize);
+            var (patients, totalCount) = await _unitOfWork.Patients.SearchPagedAsync(searchTerm, pagination.PageNumber, pagination.PageSize, hideWithoutReferralDate);
             var patientDtos = patients.Select(MapToDto);
             
             var result = new PagedResult<PatientTrackingDto>
@@ -303,6 +303,12 @@ public class PatientsController : ControllerBase
             if (filter.EndDate.HasValue)
             {
                 filteredPatients = filteredPatients.Where(p => p.CounsellingDate <= filter.EndDate.Value);
+            }
+            
+            // Apply referral date filter
+            if (filter.HideWithoutReferralDate)
+            {
+                filteredPatients = filteredPatients.Where(p => p.ReferralDate.HasValue);
             }
 
             var patientsList = filteredPatients.ToList();

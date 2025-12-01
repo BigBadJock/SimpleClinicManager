@@ -22,11 +22,18 @@ public class PatientRepository : IPatientRepository
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, bool hideWithoutReferralDate = false)
     {
         var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
-            .OrderByDescending(p => p.CreatedOn);
+            .AsQueryable();
+
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        query = query.OrderByDescending(p => p.CreatedOn);
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -51,24 +58,37 @@ public class PatientRepository : IPatientRepository
             .FirstOrDefaultAsync(p => p.MRN == mrn);
     }
 
-    public async Task<IEnumerable<PatientTracking>> GetAwaitingCounsellingAsync()
+    public async Task<IEnumerable<PatientTracking>> GetAwaitingCounsellingAsync(bool hideWithoutReferralDate = false)
     {
-        return await _context.PatientTrackings
+        var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
-            .Where(p => p.CounsellingDate == null)
+            .Where(p => p.CounsellingDate == null);
+
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        return await query
             .OrderBy(p => p.ReferralDate)
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetAwaitingCounsellingPagedAsync(int pageNumber, int pageSize)
+    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetAwaitingCounsellingPagedAsync(int pageNumber, int pageSize, bool hideWithoutReferralDate = false)
     {
         var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
-            .Where(p => p.CounsellingDate == null)
-            .OrderBy(p => p.ReferralDate);
+            .Where(p => p.CounsellingDate == null);
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        var orderedQuery = query.OrderBy(p => p.ReferralDate);
+
+        var totalCount = await orderedQuery.CountAsync();
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -76,24 +96,37 @@ public class PatientRepository : IPatientRepository
         return (items, totalCount);
     }
 
-    public async Task<IEnumerable<PatientTracking>> GetAwaitingTreatmentAsync()
+    public async Task<IEnumerable<PatientTracking>> GetAwaitingTreatmentAsync(bool hideWithoutReferralDate = false)
     {
-        return await _context.PatientTrackings
+        var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
-            .Where(p => p.CounsellingDate != null && p.DispensedDate == null)
+            .Where(p => p.CounsellingDate != null && p.DispensedDate == null);
+
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        return await query
             .OrderBy(p => p.CounsellingDate)
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetAwaitingTreatmentPagedAsync(int pageNumber, int pageSize)
+    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetAwaitingTreatmentPagedAsync(int pageNumber, int pageSize, bool hideWithoutReferralDate = false)
     {
         var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
-            .Where(p => p.CounsellingDate != null && p.DispensedDate == null)
-            .OrderBy(p => p.CounsellingDate);
+            .Where(p => p.CounsellingDate != null && p.DispensedDate == null);
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        var orderedQuery = query.OrderBy(p => p.CounsellingDate);
+
+        var totalCount = await orderedQuery.CountAsync();
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -101,28 +134,41 @@ public class PatientRepository : IPatientRepository
         return (items, totalCount);
     }
 
-    public async Task<IEnumerable<PatientTracking>> GetFollowUpDueAsync()
-    {
-        var today = DateTime.Today;
-        return await _context.PatientTrackings
-            .Include(p => p.TreatmentLookup)
-            .Where(p => (p.NextAppointment != null && p.NextAppointment <= today) ||
-                       (p.NextCycleDue != null && p.NextCycleDue <= today))
-            .OrderBy(p => p.NextAppointment ?? p.NextCycleDue)
-            .ToListAsync();
-    }
-
-    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetFollowUpDuePagedAsync(int pageNumber, int pageSize)
+    public async Task<IEnumerable<PatientTracking>> GetFollowUpDueAsync(bool hideWithoutReferralDate = false)
     {
         var today = DateTime.Today;
         var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
             .Where(p => (p.NextAppointment != null && p.NextAppointment <= today) ||
-                       (p.NextCycleDue != null && p.NextCycleDue <= today))
-            .OrderBy(p => p.NextAppointment ?? p.NextCycleDue);
+                       (p.NextCycleDue != null && p.NextCycleDue <= today));
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        return await query
+            .OrderBy(p => p.NextAppointment ?? p.NextCycleDue)
+            .ToListAsync();
+    }
+
+    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> GetFollowUpDuePagedAsync(int pageNumber, int pageSize, bool hideWithoutReferralDate = false)
+    {
+        var today = DateTime.Today;
+        var query = _context.PatientTrackings
+            .Include(p => p.TreatmentLookup)
+            .Where(p => (p.NextAppointment != null && p.NextAppointment <= today) ||
+                       (p.NextCycleDue != null && p.NextCycleDue <= today));
+
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        var orderedQuery = query.OrderBy(p => p.NextAppointment ?? p.NextCycleDue);
+
+        var totalCount = await orderedQuery.CountAsync();
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -146,7 +192,7 @@ public class PatientRepository : IPatientRepository
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize)
+    public async Task<(IEnumerable<PatientTracking> Items, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, bool hideWithoutReferralDate = false)
     {
         if (string.IsNullOrEmpty(searchTerm))
         {
@@ -157,11 +203,17 @@ public class PatientRepository : IPatientRepository
         var query = _context.PatientTrackings
             .Include(p => p.TreatmentLookup)
             .Where(p => p.Name.ToLower().Contains(normalizedSearchTerm) || 
-                       p.MRN.ToLower().Contains(normalizedSearchTerm))
-            .OrderByDescending(p => p.CreatedOn);
+                       p.MRN.ToLower().Contains(normalizedSearchTerm));
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        if (hideWithoutReferralDate)
+        {
+            query = query.Where(p => p.ReferralDate != null);
+        }
+
+        var orderedQuery = query.OrderByDescending(p => p.CreatedOn);
+
+        var totalCount = await orderedQuery.CountAsync();
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

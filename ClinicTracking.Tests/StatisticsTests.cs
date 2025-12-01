@@ -269,4 +269,48 @@ public class StatisticsTests
         Assert.Null(metrics.MaxTreatmentTime);
         Assert.Null(metrics.MinTreatmentTime);
     }
+
+    [Fact]
+    public void StatisticsFilterDto_HideWithoutReferralDate_DefaultsToFalse()
+    {
+        // Arrange & Act
+        var filter = new StatisticsFilterDto();
+
+        // Assert - Default should be false (show all patients)
+        Assert.False(filter.HideWithoutReferralDate);
+    }
+
+    [Fact]
+    public void StatisticsFilterDto_HideWithoutReferralDate_CanBeSetToTrue()
+    {
+        // Arrange & Act
+        var filter = new StatisticsFilterDto
+        {
+            HideWithoutReferralDate = true
+        };
+
+        // Assert
+        Assert.True(filter.HideWithoutReferralDate);
+    }
+
+    [Fact]
+    public void StatisticsFilterDto_WithAllFilters_ShouldBeValid()
+    {
+        // Arrange
+        var filter = new StatisticsFilterDto
+        {
+            StartDate = DateTime.Today.AddDays(-30),
+            EndDate = DateTime.Today,
+            HideWithoutReferralDate = true
+        };
+
+        // Act
+        var validationResults = new List<ValidationResult>();
+        var context = new ValidationContext(filter);
+        var isValid = Validator.TryValidateObject(filter, context, validationResults, true);
+
+        // Assert
+        Assert.True(isValid);
+        Assert.Empty(validationResults);
+    }
 }
